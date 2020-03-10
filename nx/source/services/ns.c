@@ -19,12 +19,15 @@ NX_GENERATE_SERVICE_GUARD(ns);
 
 Result _nsInitialize(void) {
     Result rc=0;
+    static const char* const servarray[5] = {"ns:ec", "ns:web", "ns:rid", "ns:rt", "ns:am2"}; // This is the order used used by official sw, however the below loop uses this in reverse since ns:am2 is last in the list.
 
     if(hosversionBefore(3,0,0))
         return smGetService(&g_nsAppManSrv, "ns:am");
 
-    rc = smGetService(&g_nsGetterSrv, "ns:am2");//TODO: Support the other services?(Only useful when ns:am2 isn't accessible)
-    if (R_FAILED(rc)) return rc;
+    for (s32 i=4; i>=0; i--) {
+        rc = smGetService(&g_nsGetterSrv, servarray[i]);
+        if (R_SUCCEEDED(rc)) break;
+    }
 
     return rc;
 }
@@ -44,11 +47,25 @@ Service* nsGetServiceSession_ApplicationManagerInterface(void) {
     return &g_nsAppManSrv;
 }
 
+Result nsGetDynamicRightsInterface(Service* srv_out) {
+    if (hosversionBefore(6,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _nsGetSession(&g_nsGetterSrv, srv_out, 7988);
+}
+
 Result nsGetReadOnlyApplicationControlDataInterface(Service* srv_out) {
     if (hosversionBefore(5,1,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     return _nsGetSession(&g_nsGetterSrv, srv_out, 7989);
+}
+
+Result nsGetReadOnlyApplicationRecordInterface(Service* srv_out) {
+    if (hosversionBefore(5,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _nsGetSession(&g_nsGetterSrv, srv_out, 7991);
 }
 
 Result nsGetECommerceInterface(Service* srv_out) {
@@ -58,11 +75,25 @@ Result nsGetECommerceInterface(Service* srv_out) {
     return _nsGetSession(&g_nsGetterSrv, srv_out, 7992);
 }
 
+Result nsGetApplicationVersionInterface(Service* srv_out) {
+    if (hosversionBefore(4,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _nsGetSession(&g_nsGetterSrv, srv_out, 7993);
+}
+
 Result nsGetFactoryResetInterface(Service* srv_out) {
     if (hosversionBefore(3,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     return _nsGetSession(&g_nsGetterSrv, srv_out, 7994);
+}
+
+Result nsGetAccountProxyInterface(Service* srv_out) {
+    if (hosversionBefore(3,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _nsGetSession(&g_nsGetterSrv, srv_out, 7995);
 }
 
 Result nsGetApplicationManagerInterface(Service* srv_out) {
@@ -84,6 +115,13 @@ Result nsGetContentManagementInterface(Service* srv_out) {
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     return _nsGetSession(&g_nsGetterSrv, srv_out, 7998);
+}
+
+Result nsGetDocumentInterface(Service* srv_out) {
+    if (hosversionBefore(3,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _nsGetSession(&g_nsGetterSrv, srv_out, 7999);
 }
 
 static Result _nsGetSession(Service* srv, Service* srv_out, u32 cmd_id) {

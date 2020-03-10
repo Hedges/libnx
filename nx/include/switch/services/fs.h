@@ -123,6 +123,11 @@ typedef struct {
     u8 padding[7];
 } FsTimeStampRaw;
 
+/// This is nn::fssystem::ArchiveMacKey. Used by \ref setsysGetThemeKey and \ref setsysSetThemeKey. Does not appear to be in use elsewhere.
+typedef struct {
+    u8 key[0x10];
+} FsArchiveMacKey;
+
 /// Returned by fsFsGetEntryType.
 typedef enum {
     FsDirEntryType_Dir  = 0, ///< Entry is a directory.
@@ -344,6 +349,8 @@ Result fsOpenDataStorageByDataId(FsStorage* out, u64 dataId, NcmStorageId storag
 
 Result fsOpenDeviceOperator(FsDeviceOperator* out);
 Result fsOpenSdCardDetectionEventNotifier(FsEventNotifier* out);
+
+Result fsIsSignedSystemPartitionOnSdCardValid(bool *out);
 
 /// Retrieves the rights id corresponding to the content path. Only available on [2.0.0+].
 Result fsGetRightsIdByPath(const char* path, FsRightsId* out_rights_id);
