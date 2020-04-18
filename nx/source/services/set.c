@@ -392,7 +392,7 @@ Result setsysSetVibrationMasterVolume(float volume) {
 Result setsysGetSettingsItemValueSize(const char *name, const char *item_key, u64 *size_out) {
     char send_name[SET_MAX_NAME_SIZE];
     char send_item_key[SET_MAX_NAME_SIZE];
-    
+
     memset(send_name, 0, SET_MAX_NAME_SIZE);
     memset(send_item_key, 0, SET_MAX_NAME_SIZE);
     strncpy(send_name, name, SET_MAX_NAME_SIZE-1);
@@ -413,7 +413,7 @@ Result setsysGetSettingsItemValueSize(const char *name, const char *item_key, u6
 Result setsysGetSettingsItemValue(const char *name, const char *item_key, void *value_out, size_t value_out_size, u64 *size_out) {
     char send_name[SET_MAX_NAME_SIZE];
     char send_item_key[SET_MAX_NAME_SIZE];
-    
+
     memset(send_name, 0, SET_MAX_NAME_SIZE);
     memset(send_item_key, 0, SET_MAX_NAME_SIZE);
     strncpy(send_name, name, SET_MAX_NAME_SIZE-1);
@@ -569,15 +569,8 @@ Result setsysGetBatteryLot(SetBatteryLot *out) {
     return serviceDispatchOut(&g_setsysSrv, 67, *out);
 }
 
-Result setsysGetSerialNumber(char *serial) {
-    char out[0x18]={0};
-
-    Result rc = serviceDispatchOut(&g_setsysSrv, 68, out);
-    if (R_SUCCEEDED(rc) && serial) {
-        memcpy(serial, out, 0x18);
-        serial[0x18]=0;
-    }
-    return rc;
+Result setsysGetSerialNumber(SetSysSerialNumber *out) {
+    return serviceDispatchOut(&g_setsysSrv, 68, *out);
 }
 
 Result setsysGetNfcEnableFlag(bool *out) {
@@ -1427,6 +1420,126 @@ Result setsysSetTouchScreenMode(SetSysTouchScreenMode mode) {
     return _setCmdInU32NoOut(&g_setsysSrv, mode, 188);
 }
 
+Result setsysGetButtonConfigSettingsFull(s32 *total_out, SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatchOut(&g_setsysSrv, 189, *total_out,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigSettingsFull(const SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 190,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysGetButtonConfigSettingsEmbedded(s32 *total_out, SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatchOut(&g_setsysSrv, 191, *total_out,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigSettingsEmbedded(const SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 192,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysGetButtonConfigSettingsLeft(s32 *total_out, SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatchOut(&g_setsysSrv, 193, *total_out,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigSettingsLeft(const SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 194,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysGetButtonConfigSettingsRight(s32 *total_out, SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatchOut(&g_setsysSrv, 195, *total_out,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigSettingsRight(const SetSysButtonConfigSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 196,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigSettings) } },
+    );
+}
+
+Result setsysGetButtonConfigRegisteredSettingsEmbedded(SetSysButtonConfigRegisteredSettings *settings) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 197,
+        .buffer_attrs = { SfBufferAttr_FixedSize | SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, sizeof(SetSysButtonConfigRegisteredSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigRegisteredSettingsEmbedded(const SetSysButtonConfigRegisteredSettings *settings) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 198,
+        .buffer_attrs = { SfBufferAttr_FixedSize | SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, sizeof(SetSysButtonConfigRegisteredSettings) } },
+    );
+}
+
+Result setsysGetButtonConfigRegisteredSettings(s32 *total_out, SetSysButtonConfigRegisteredSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatchOut(&g_setsysSrv, 199, *total_out,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigRegisteredSettings) } },
+    );
+}
+
+Result setsysSetButtonConfigRegisteredSettings(const SetSysButtonConfigRegisteredSettings *settings, s32 count) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return serviceDispatch(&g_setsysSrv, 200,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { settings, count*sizeof(SetSysButtonConfigRegisteredSettings) } },
+    );
+}
+
 Result setcalGetBdAddress(SetCalBdAddress *out) {
     return serviceDispatchOut(&g_setcalSrv, 0, *out);
 }
@@ -1676,4 +1789,18 @@ Result setcalGetBatteryVersion(u8 *out_version) {
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     return _setCmdNoInOutU8(&g_setcalSrv, out_version, 41);
+}
+
+Result setcalGetDeviceId(u64 *out_device_id) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _setCmdNoInOut64(&g_setcalSrv, out_device_id, 42);
+}
+
+Result setcalGetConsoleSixAxisSensorMountType(u8 *out_type) {
+    if (hosversionBefore(10,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    return _setCmdNoInOutU8(&g_setcalSrv, out_type, 43);
 }
