@@ -92,7 +92,7 @@ typedef enum {
 
 /// Value for \ref SwkbdInitializeArg mode. Controls the LibAppletMode when launching the applet.
 typedef enum {
-    SwkbdInlineMode_UserDisplay   = 0,  ///< LibAppletMode_Unknown3. This is the default. The user-process must handle displaying the swkbd gfx on the screen. Attempting to get the swkbd gfx data for this currently throws an error (unknown why), SwkbdInlineMode_AppletDisplay should be used instead.
+    SwkbdInlineMode_UserDisplay   = 0,  ///< LibAppletMode_BackgroundIndirect. This is the default. The user-process must handle displaying the swkbd gfx on the screen, by loading the image with \ref swkbdInlineGetImage.
     SwkbdInlineMode_AppletDisplay = 1,  ///< LibAppletMode_Background. The applet will handle displaying gfx on the screen.
 } SwkbdInlineMode;
 
@@ -604,6 +604,35 @@ Result swkbdInlineLaunch(SwkbdInline* s);
  * @param unk_x5 Value for SwkbdInitializeArg::unk_x5.
  */
 Result swkbdInlineLaunchForLibraryApplet(SwkbdInline* s, u8 mode, u8 unk_x5);
+
+/**
+ * @brief GetWindowSize
+ * @param[out] width Output width.
+ * @param[out] height Output height.
+ */
+NX_CONSTEXPR void swkbdInlineGetWindowSize(s32 *width, s32 *height) {
+    *width = 1280;
+    *height = 720;
+}
+
+/**
+ * @brief GetImageMemoryRequirement
+ * @note Wrapper for \ref viGetIndirectLayerImageRequiredMemoryInfo.
+ * @param[out] out_size Output size.
+ * @param[out] out_alignment Output alignment.
+ */
+Result swkbdInlineGetImageMemoryRequirement(u64 *out_size, u64 *out_alignment);
+
+/**
+ * @brief GetImage
+ * @note Only available with ::SwkbdInlineMode_UserDisplay.
+ * @note For width/height, see \ref swkbdInlineGetWindowSize.
+ * @param s SwkbdInline object.
+ * @param[out] buffer Output RGBA8 image buffer, this must use the alignment from \ref swkbdInlineGetImageMemoryRequirement.
+ * @param[in] size Output buffer size, this must match the size from \ref swkbdInlineGetImageMemoryRequirement.
+ * @param[out] data_available Whether data is available.
+ */
+Result swkbdInlineGetImage(SwkbdInline* s, void* buffer, u64 size, bool *data_available);
 
 /**
  * @brief Handles updating SwkbdInline state, this should be called periodically.
