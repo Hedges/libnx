@@ -93,6 +93,11 @@ extern "C" {
 #include "switch/services/set.h"
 #include "switch/services/ssl.h"
 #include "switch/services/lr.h"
+#include "switch/services/bt.h"
+#include "switch/services/btdrv.h"
+#include "switch/services/btm.h"
+#include "switch/services/btmu.h"
+#include "switch/services/btmsys.h"
 #include "switch/services/spl.h"
 #include "switch/services/ncm.h"
 #include "switch/services/psc.h"
@@ -113,6 +118,7 @@ extern "C" {
 #include "switch/services/mii.h"
 #include "switch/services/miiimg.h"
 #include "switch/services/ldn.h"
+#include "switch/services/news.h"
 
 #include "switch/display/binder.h"
 #include "switch/display/parcel.h"
@@ -149,6 +155,7 @@ extern "C" {
 #include "switch/runtime/nxlink.h"
 #include "switch/runtime/resolver.h"
 #include "switch/runtime/ringcon.h"
+#include "switch/runtime/btdev.h"
 
 #include "switch/runtime/util/utf.h"
 

@@ -12,10 +12,10 @@
 #include "../services/time.h"
 #include "../services/acc.h"
 #include "../services/fs.h"
+#include "../services/btdrv_types.h"
 #include "../sf/service.h"
 
 #define SET_MAX_NAME_SIZE 0x48
-#define SET_MAX_NICKNAME_SIZE 0x80
 
 typedef enum {
     ColorSetId_Light = 0,
@@ -42,6 +42,7 @@ typedef enum
     SetLanguage_ES419 = 14,  ///< "LatinAmericanSpanish"
     SetLanguage_ZHHANS = 15, ///< [4.0.0+] ChineseSimplified
     SetLanguage_ZHHANT = 16, ///< [4.0.0+] ChineseTraditional
+    SetLanguage_PTBR   = 17, ///< [10.1.0+] "BrazilianPortuguese"
     SetLanguage_Total,       ///< Total languages supported by this enum.
 } SetLanguage;
 
@@ -298,7 +299,7 @@ typedef struct {
 
 /// BluetoothDevicesSettings
 typedef struct {
-    u8 address[6];                      ///< nn::bluetooth::Address
+    BtdrvAddress address;
     char name[0x20];
     u16 unk_x26;
     u8 unk_x28;
@@ -344,6 +345,11 @@ typedef struct {
 typedef struct {
     char number[0x18];
 } SetSysSerialNumber;
+
+/// DeviceNickName
+typedef struct {
+    char nickname[0x80];
+} SetSysDeviceNickName;
 
 /// UserSelectorSettings
 typedef struct {
@@ -580,7 +586,7 @@ typedef struct {
 
 /// NxControllerSettings
 typedef struct {
-    u8 address[6];                      ///< nn::bluetooth::Address
+    BtdrvAddress address;
     u8 type;                            ///< \ref SetSysControllerType.
     char serial[0x10];
     SetSysColor4u8Type body_color;
@@ -642,7 +648,7 @@ typedef struct {
 
 /// BlePairingSettings
 typedef struct {
-    u8 address[6];          ///< nn::bluetooth::Address
+    BtdrvAddress address;
     u16 unk_x6;
     u16 unk_x8;
     u8 unk_xA;
@@ -889,6 +895,20 @@ Result setGetAvailableLanguageCodeCount(s32 *total);
 
 /// Gets the RegionCode.
 Result setGetRegionCode(SetRegion *out);
+
+/**
+ * @brief GetQuestFlag
+ * @note Only available on [5.0.0+].
+ * @param[out] out Output flag.
+ */
+Result setGetQuestFlag(bool *out);
+
+/**
+ * @brief Gets the system's nickname.
+ * @note Only available on [10.1.0+].
+ * @param[out] nickname \ref SetSysDeviceNickName
+ */
+Result setGetDeviceNickname(SetSysDeviceNickName *nickname);
 
 /// Initialize setsys.
 Result setsysInitialize(void);
@@ -1357,15 +1377,16 @@ Result setsysSetInitialLaunchSettings(const SetSysInitialLaunchSettings *setting
 
 /**
  * @brief Gets the system's nickname.
- * @param nickname Pointer to output the nickname to. (The buffer size needs to be at least 0x80 bytes)
+ * @note Same as \ref setGetDeviceNickname, which official sw uses instead on [10.1.0+].
+ * @param[out] nickname \ref SetSysDeviceNickName
  */
-Result setsysGetDeviceNickname(char* nickname);
+Result setsysGetDeviceNickname(SetSysDeviceNickName *nickname);
 
 /**
  * @brief Sets the system's nickname.
- * @param nickname Pointer to read the nickname from.
+ * @param[in] nickname \ref SetSysDeviceNickName
  */
-Result setsysSetDeviceNickname(const char* nickname);
+Result setsysSetDeviceNickname(const SetSysDeviceNickName *nickname);
 
 /**
  * @brief GetProductModel
@@ -2236,6 +2257,20 @@ Result setsysGetButtonConfigRegisteredSettings(s32 *total_out, SetSysButtonConfi
  * @param[in] settings \ref SetSysButtonConfigRegisteredSettings
  */
 Result setsysSetButtonConfigRegisteredSettings(const SetSysButtonConfigRegisteredSettings *settings, s32 count);
+
+/**
+ * @brief GetFieldTestingFlag
+ * @note Only available on [10.1.0+].
+ * @param[out] out Output flag.
+ */
+Result setsysGetFieldTestingFlag(bool *out);
+
+/**
+ * @brief SetFieldTestingFlag
+ * @note Only available on [10.1.0+].
+ * @param[in] flag Input flag.
+ */
+Result setsysSetFieldTestingFlag(bool flag);
 
 /// Initialize setcal.
 Result setcalInitialize(void);
