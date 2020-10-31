@@ -2,15 +2,14 @@
 #include "runtime/env.h"
 #include "runtime/hosversion.h"
 #include "services/sm.h"
-#include "services/fatal.h"
 #include "services/fs.h"
 #include "services/hid.h"
 #include "services/time.h"
 #include "services/applet.h"
 #include "services/set.h"
+#include "runtime/diag.h"
 #include "runtime/devices/fs_dev.h"
 
-void* __stack_top;
 void NORETURN __nx_exit(Result rc, LoaderReturnFn retaddr);
 
 void virtmemSetup(void);
@@ -88,7 +87,7 @@ void __attribute__((weak)) __libnx_initheap(void)
         Result rc = svcSetHeapSize(&addr, size);
 
         if (R_FAILED(rc))
-            fatalThrow(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));
+            diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));
     }
 
     // Newlib
@@ -109,7 +108,7 @@ void __attribute__((weak)) __appInit(void)
     // Initialize default services.
     rc = smInitialize();
     if (R_FAILED(rc))
-        fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
+        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
 
     if (hosversionGet() == 0) {
         rc = setsysInitialize();
@@ -124,23 +123,23 @@ void __attribute__((weak)) __appInit(void)
 
     rc = appletInitialize();
     if (R_FAILED(rc))
-        fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_AM));
+        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_AM));
 
     if (__nx_applet_type != AppletType_None) {
         rc = hidInitialize();
         if (R_FAILED(rc))
-            fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_HID));
+            diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_HID));
     }
 
     rc = timeInitialize();
     if (R_FAILED(rc))
-        fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_Time));
+        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_Time));
 
     __libnx_init_time();
 
     rc = fsInitialize();
     if (R_FAILED(rc))
-        fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_FS));
+        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_FS));
 
     fsdevMountSdmc();
     __libnx_init_cwd();
