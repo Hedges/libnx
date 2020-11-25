@@ -25,6 +25,7 @@ extern "C" {
 #include "switch/kernel/shmem.h"
 #include "switch/kernel/mutex.h"
 #include "switch/kernel/event.h"
+#include "switch/kernel/levent.h"
 #include "switch/kernel/uevent.h"
 #include "switch/kernel/utimer.h"
 #include "switch/kernel/rwlock.h"
@@ -119,7 +120,9 @@ extern "C" {
 #include "switch/services/mii.h"
 #include "switch/services/miiimg.h"
 #include "switch/services/ldn.h"
+#include "switch/services/lp2p.h"
 #include "switch/services/news.h"
+#include "switch/services/ins.h"
 
 #include "switch/display/binder.h"
 #include "switch/display/parcel.h"
@@ -153,6 +156,7 @@ extern "C" {
 
 #include "switch/runtime/env.h"
 #include "switch/runtime/hosversion.h"
+#include "switch/runtime/diag.h"
 #include "switch/runtime/nxlink.h"
 #include "switch/runtime/resolver.h"
 #include "switch/runtime/ringcon.h"
