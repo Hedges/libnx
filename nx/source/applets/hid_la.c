@@ -60,7 +60,7 @@ static Result _hidLaShowControllerSupportCore(HidLaControllerSupportResultInfo *
     if (R_SUCCEEDED(rc)) {
         if (result_info) {
             *result_info = res.info;
-            result_info->selected_id = hidControllerIDFromOfficial(result_info->selected_id);
+            result_info->selected_id = result_info->selected_id;
         }
 
         if (res.res != 0) {
@@ -92,14 +92,14 @@ static Result _hidLaShowControllerFirmwareUpdateCore(const HidLaControllerFirmwa
 
 static Result _hidLaSetupControllerSupportArgPrivate(HidLaControllerSupportArgPrivate *private_arg) {
     Result rc=0;
-    HidControllerType type;
-    HidJoyHoldType hold_type;
+    u32 style_set;
+    HidNpadJoyHoldType hold_type;
 
-    rc = hidGetSupportedNpadStyleSet(&type);
+    rc = hidGetSupportedNpadStyleSet(&style_set);
     if (R_SUCCEEDED(rc)) rc = hidGetNpadJoyHoldType(&hold_type);
 
     if (R_SUCCEEDED(rc)) {
-        private_arg->npad_style_set = type;
+        private_arg->npad_style_set = style_set;
         private_arg->npad_joy_hold_type = hold_type;
     }
 
@@ -119,7 +119,7 @@ void hidLaCreateControllerFirmwareUpdateArg(HidLaControllerFirmwareUpdateArg *ar
     memset(arg, 0, sizeof(*arg));
 }
 
-Result hidLaSetExplainText(HidLaControllerSupportArg *arg, const char *str, HidControllerID id) {
+Result hidLaSetExplainText(HidLaControllerSupportArg *arg, const char *str, HidNpadIdType id) {
     if (id >= 8)
         return MAKERESULT(Module_Libnx, LibnxError_BadInput);
 
@@ -185,7 +185,7 @@ Result hidLaShowControllerSupportForSystem(HidLaControllerSupportResultInfo *res
     }
     else {
         private_arg.npad_style_set = 0;
-        private_arg.npad_joy_hold_type = HidJoyHoldType_Horizontal;
+        private_arg.npad_joy_hold_type = HidNpadJoyHoldType_Horizontal;
     }
 
     if (R_SUCCEEDED(rc)) rc = _hidLaShowControllerSupportCore(result_info, arg, &private_arg);

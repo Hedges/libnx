@@ -110,6 +110,7 @@ extern "C" {
 #include "switch/services/capsu.h"
 #include "switch/services/capssc.h"
 #include "switch/services/capssu.h"
+#include "switch/services/capmtp.h"
 #include "switch/services/nfc.h"
 #include "switch/services/wlaninf.h"
 #include "switch/services/pctl.h"
@@ -123,6 +124,7 @@ extern "C" {
 #include "switch/services/lp2p.h"
 #include "switch/services/news.h"
 #include "switch/services/ins.h"
+#include "switch/services/ectx.h"
 
 #include "switch/display/binder.h"
 #include "switch/display/parcel.h"
@@ -159,6 +161,7 @@ extern "C" {
 #include "switch/runtime/diag.h"
 #include "switch/runtime/nxlink.h"
 #include "switch/runtime/resolver.h"
+#include "switch/runtime/pad.h"
 #include "switch/runtime/ringcon.h"
 #include "switch/runtime/btdev.h"
 

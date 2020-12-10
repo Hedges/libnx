@@ -203,6 +203,7 @@ typedef enum {
     InfoType_TotalNonSystemMemorySize       = 21, ///< [6.0.0+] Total amount of memory available for process, excluding that for process memory management.
     InfoType_UsedNonSystemMemorySize        = 22, ///< [6.0.0+] Amount of memory used by process, excluding that for process memory management.
     InfoType_IsApplication                  = 23, ///< [9.0.0+] Whether the specified process is an Application.
+    InfoType_FreeThreadCount                = 24, ///< [11.0.0+] The number of free threads available to the process's resource limit.
 
     InfoType_ThreadTickCount                = 0xF0000002, ///< Number of ticks spent on thread.
 } InfoType;
@@ -273,7 +274,7 @@ typedef struct {
 /**
  * @brief Set the process heap to a given size. It can both extend and shrink the heap.
  * @param[out] out_addr Variable to which write the address of the heap (which is randomized and fixed by the kernel)
- * @param[in] size Size of the heap, must be a multiple of 0x2000000 and [2.0.0+] less than 0x18000000.
+ * @param[in] size Size of the heap, must be a multiple of 0x200000 and [2.0.0+] less than 0x18000000.
  * @return Result code.
  * @note Syscall number 0x01.
  */
@@ -812,6 +813,19 @@ Result svcSignalToAddress(void *address, u32 signal_type, s32 value, s32 count);
  * @note Syscall number 0x36.
  */
 void svcSynchronizePreemptionState(void);
+
+///@}
+
+///@name Resource Limit Management
+///@{
+
+/**
+ * @brief Gets the peak value a LimitableResource has had, for a Resource Limit handle. [11.0.0+]
+ * @return Result code.
+ * @note Syscall number 0x37.
+ * @warning This is a privileged syscall. Use \ref envIsSyscallHinted to check if it is available.
+ */
+Result svcGetResourceLimitPeakValue(s64 *out, Handle reslimit_h, LimitableResource which);
 
 ///@}
 
