@@ -76,24 +76,59 @@ static Result _hiddbgCmdInTmemNoOut(TransferMemory *tmem, u32 cmd_id) {
     return _hiddbgCmdInHandle64NoOut(tmem->handle, tmem->size, cmd_id);
 }
 
+Result hiddbgSetDebugPadAutoPilotState(const HiddbgDebugPadAutoPilotState *state) {
+    return serviceDispatchIn(&g_hiddbgSrv, 1, *state);
+}
+
+Result hiddbgUnsetDebugPadAutoPilotState(void) {
+    return _hiddbgCmdNoIO(2);
+}
+
+Result hiddbgSetTouchScreenAutoPilotState(const HidTouchState *states, s32 count) {
+    return serviceDispatch(&g_hiddbgSrv, 11,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+        .buffers = { { states, count*sizeof(HidTouchState) } },
+    );
+}
+
+Result hiddbgUnsetTouchScreenAutoPilotState(void) {
+    return _hiddbgCmdNoIO(12);
+}
+
+Result hiddbgSetMouseAutoPilotState(const HiddbgMouseAutoPilotState *state) {
+    return serviceDispatchIn(&g_hiddbgSrv, 21, *state);
+}
+
+Result hiddbgUnsetMouseAutoPilotState(void) {
+    return _hiddbgCmdNoIO(22);
+}
+
+Result hiddbgSetKeyboardAutoPilotState(const HiddbgKeyboardAutoPilotState *state) {
+    return serviceDispatchIn(&g_hiddbgSrv, 31, *state);
+}
+
+Result hiddbgUnsetKeyboardAutoPilotState(void) {
+    return _hiddbgCmdNoIO(32);
+}
+
 Result hiddbgDeactivateHomeButton(void) {
     return _hiddbgCmdNoIO(110);
 }
 
-Result hiddbgUpdateControllerColor(u32 colorBody, u32 colorButtons, u64 UniquePadId) {
+Result hiddbgUpdateControllerColor(u32 colorBody, u32 colorButtons, HidsysUniquePadId unique_pad_id) {
     if (hosversionBefore(3,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     const struct {
         u32 colorBody;
         u32 colorButtons;
-        u64 UniquePadId;
-    } in = { colorBody, colorButtons, UniquePadId };
+        HidsysUniquePadId unique_pad_id;
+    } in = { colorBody, colorButtons, unique_pad_id };
 
     return serviceDispatchIn(&g_hiddbgSrv, 221, in);
 }
 
-Result hiddbgUpdateDesignInfo(u32 colorBody, u32 colorButtons, u32 colorLeftGrip, u32 colorRightGrip, u8 inval, u64 UniquePadId) {
+Result hiddbgUpdateDesignInfo(u32 colorBody, u32 colorButtons, u32 colorLeftGrip, u32 colorRightGrip, u8 inval, HidsysUniquePadId unique_pad_id) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
@@ -104,20 +139,20 @@ Result hiddbgUpdateDesignInfo(u32 colorBody, u32 colorButtons, u32 colorLeftGrip
         u32 colorRightGrip;
         u8 inval;
         u8 pad[7];
-        u64 UniquePadId;
-    } in = { colorBody, colorButtons, colorLeftGrip, colorRightGrip, inval, {0}, UniquePadId };
+        HidsysUniquePadId unique_pad_id;
+    } in = { colorBody, colorButtons, colorLeftGrip, colorRightGrip, inval, {0}, unique_pad_id };
 
     return serviceDispatchIn(&g_hiddbgSrv, 224, in);
 }
 
-Result hiddbgAcquireOperationEventHandle(Event* out_event, bool autoclear, u64 UniquePadId) {
+Result hiddbgAcquireOperationEventHandle(Event* out_event, bool autoclear, HidsysUniquePadId unique_pad_id) {
     if (hosversionBefore(6,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     Handle tmp_handle = INVALID_HANDLE;
     Result rc = 0;
 
-    rc = serviceDispatchIn(&g_hiddbgSrv, 228, UniquePadId,
+    rc = serviceDispatchIn(&g_hiddbgSrv, 228, unique_pad_id,
         .out_handle_attrs = { SfOutHandleAttr_HipcCopy },
         .out_handles = &tmp_handle,
     );
@@ -125,13 +160,13 @@ Result hiddbgAcquireOperationEventHandle(Event* out_event, bool autoclear, u64 U
     return rc;
 }
 
-static Result _hiddbgReadSerialFlash(TransferMemory *tmem, u32 offset, u64 size, u64 UniquePadId) {
+static Result _hiddbgReadSerialFlash(TransferMemory *tmem, u32 offset, u64 size, HidsysUniquePadId unique_pad_id) {
     const struct {
         u32 offset;
         u32 pad;
         u64 size;
-        u64 UniquePadId;
-    } in = { offset, 0, size, UniquePadId };
+        HidsysUniquePadId unique_pad_id;
+    } in = { offset, 0, size, unique_pad_id };
 
     return serviceDispatchIn(&g_hiddbgSrv, 229, in,
         .in_num_handles = 1,
@@ -139,14 +174,14 @@ static Result _hiddbgReadSerialFlash(TransferMemory *tmem, u32 offset, u64 size,
     );
 }
 
-static Result _hiddbgWriteSerialFlash(TransferMemory *tmem, u32 offset, u64 tmem_size, u64 size, u64 UniquePadId) {
+static Result _hiddbgWriteSerialFlash(TransferMemory *tmem, u32 offset, u64 tmem_size, u64 size, HidsysUniquePadId unique_pad_id) {
     const struct {
         u32 offset;
         u32 pad;
         u64 tmem_size;
         u64 size;
-        u64 UniquePadId;
-    } in = { offset, 0, tmem_size, size, UniquePadId };
+        HidsysUniquePadId unique_pad_id;
+    } in = { offset, 0, tmem_size, size, unique_pad_id };
 
     return serviceDispatchIn(&g_hiddbgSrv, 230, in,
         .in_num_handles = 1,
@@ -155,7 +190,7 @@ static Result _hiddbgWriteSerialFlash(TransferMemory *tmem, u32 offset, u64 tmem
 }
 
 // sdk-nso doesn't use hiddbgAcquireOperationEventHandle/hiddbgGetOperationResult in the *SerialFlash impl, those are used seperately by the user. [9.0.0+] sdk-nso no longer exposes *SerialFlash and related functionality.
-Result hiddbgReadSerialFlash(u32 offset, void* buffer, size_t size, u64 UniquePadId) {
+Result hiddbgReadSerialFlash(u32 offset, void* buffer, size_t size, HidsysUniquePadId unique_pad_id) {
     Result rc=0;
     Event tmpevent={0};
     TransferMemory tmem;
@@ -167,17 +202,17 @@ Result hiddbgReadSerialFlash(u32 offset, void* buffer, size_t size, u64 UniquePa
     rc = tmemCreate(&tmem, sizealign, Perm_Rw);
     if (R_FAILED(rc)) return rc;
 
-    rc = hiddbgAcquireOperationEventHandle(&tmpevent, true, UniquePadId); // *Must* be used before _hiddbgReadSerialFlash.
-    if (R_SUCCEEDED(rc)) rc = _hiddbgReadSerialFlash(&tmem, offset, size, UniquePadId);
+    rc = hiddbgAcquireOperationEventHandle(&tmpevent, true, unique_pad_id); // *Must* be used before _hiddbgReadSerialFlash.
+    if (R_SUCCEEDED(rc)) rc = _hiddbgReadSerialFlash(&tmem, offset, size, unique_pad_id);
     if (R_SUCCEEDED(rc)) rc = eventWait(&tmpevent, UINT64_MAX);
-    if (R_SUCCEEDED(rc)) rc = hiddbgGetOperationResult(UniquePadId);
+    if (R_SUCCEEDED(rc)) rc = hiddbgGetOperationResult(unique_pad_id);
     if (R_SUCCEEDED(rc)) memcpy(buffer, tmem.src_addr, size);
     eventClose(&tmpevent);
     tmemClose(&tmem);
     return rc;
 }
 
-Result hiddbgWriteSerialFlash(u32 offset, void* buffer, size_t tmem_size, size_t size, u64 UniquePadId) {
+Result hiddbgWriteSerialFlash(u32 offset, void* buffer, size_t tmem_size, size_t size, HidsysUniquePadId unique_pad_id) {
     Result rc=0;
     Event tmpevent={0};
     TransferMemory tmem;
@@ -188,27 +223,27 @@ Result hiddbgWriteSerialFlash(u32 offset, void* buffer, size_t tmem_size, size_t
     rc = tmemCreateFromMemory(&tmem, buffer, tmem_size, Perm_R);
     if (R_FAILED(rc)) return rc;
 
-    rc = hiddbgAcquireOperationEventHandle(&tmpevent, true, UniquePadId); // *Must* be used before _hiddbgWriteSerialFlash.
-    if (R_SUCCEEDED(rc)) rc = _hiddbgWriteSerialFlash(&tmem, offset, tmem_size, size, UniquePadId);
+    rc = hiddbgAcquireOperationEventHandle(&tmpevent, true, unique_pad_id); // *Must* be used before _hiddbgWriteSerialFlash.
+    if (R_SUCCEEDED(rc)) rc = _hiddbgWriteSerialFlash(&tmem, offset, tmem_size, size, unique_pad_id);
     if (R_SUCCEEDED(rc)) rc = eventWait(&tmpevent, UINT64_MAX);
-    if (R_SUCCEEDED(rc)) rc = hiddbgGetOperationResult(UniquePadId);
+    if (R_SUCCEEDED(rc)) rc = hiddbgGetOperationResult(unique_pad_id);
     eventClose(&tmpevent);
     tmemClose(&tmem);
     return rc;
 }
 
-Result hiddbgGetOperationResult(u64 UniquePadId) {
+Result hiddbgGetOperationResult(HidsysUniquePadId unique_pad_id) {
     if (hosversionBefore(6,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
-    return _hiddbgCmdInU64NoOut(UniquePadId, 231);
+    return _hiddbgCmdInU64NoOut(unique_pad_id.id, 231);
 }
 
-Result hiddbgGetUniquePadDeviceTypeSetInternal(u64 UniquePadId, u32 *out) {
+Result hiddbgGetUniquePadDeviceTypeSetInternal(HidsysUniquePadId unique_pad_id, u32 *out) {
     if (hosversionBefore(6,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     u32 tmp=0;
-    Result rc = serviceDispatchInOut(&g_hiddbgSrv, 234, UniquePadId, tmp);
+    Result rc = serviceDispatchInOut(&g_hiddbgSrv, 234, unique_pad_id, tmp);
     if (R_SUCCEEDED(rc) && out) { // Pre-9.0.0 output is an u32, with [9.0.0+] it's an u8.
         if (hosversionBefore(9,0,0))
             *out = tmp;
@@ -218,34 +253,34 @@ Result hiddbgGetUniquePadDeviceTypeSetInternal(u64 UniquePadId, u32 *out) {
     return rc;
 }
 
-Result hiddbgGetAbstractedPadHandles(u64 *AbstractedPadHandles, s32 count, s32 *total_entries) {
+Result hiddbgGetAbstractedPadHandles(HiddbgAbstractedPadHandle *handles, s32 count, s32 *total_out) {
     if (hosversionBefore(5,0,0) || hosversionAtLeast(9,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return serviceDispatchOut(&g_hiddbgSrv, 301, *total_entries,
+    return serviceDispatchOut(&g_hiddbgSrv, 301, *total_out,
         .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_Out },
-        .buffers = { { AbstractedPadHandles, count*sizeof(u64) } },
+        .buffers = { { handles, count*sizeof(HiddbgAbstractedPadHandle) } },
     );
 }
 
-Result hiddbgGetAbstractedPadState(u64 AbstractedPadHandle, HiddbgAbstractedPadState *state) {
+Result hiddbgGetAbstractedPadState(HiddbgAbstractedPadHandle handle, HiddbgAbstractedPadState *state) {
     if (hosversionBefore(5,0,0) || hosversionAtLeast(9,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return serviceDispatchInOut(&g_hiddbgSrv, 302, AbstractedPadHandle, *state);
+    return serviceDispatchInOut(&g_hiddbgSrv, 302, handle, *state);
 }
 
-Result hiddbgGetAbstractedPadsState(u64 *AbstractedPadHandles, HiddbgAbstractedPadState *states, s32 count, s32 *total_entries) {
+Result hiddbgGetAbstractedPadsState(HiddbgAbstractedPadHandle *handles, HiddbgAbstractedPadState *states, s32 count, s32 *total_out) {
     if (hosversionBefore(5,0,0) || hosversionAtLeast(9,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return serviceDispatchOut(&g_hiddbgSrv, 303, *total_entries,
+    return serviceDispatchOut(&g_hiddbgSrv, 303, *total_out,
         .buffer_attrs = {
             SfBufferAttr_HipcPointer | SfBufferAttr_Out,
             SfBufferAttr_HipcAutoSelect | SfBufferAttr_Out,
         },
         .buffers = {
-            { AbstractedPadHandles, count*sizeof(u64) },
+            { handles, count*sizeof(HiddbgAbstractedPadHandle) },
             { states, count*sizeof(HiddbgAbstractedPadState) },
         },
     );
@@ -312,21 +347,23 @@ static void _hiddbgConvertHdlsDeviceInfoFromV7(HiddbgHdlsDeviceInfo *out, const 
 static void _hiddbgConvertHiddbgHdlsStateToV7(HiddbgHdlsStateV7 *out, const HiddbgHdlsState *in) {
     memset(out, 0, sizeof(*out));
 
-    out->powerConnected = (in->flags & BIT(0)) != 0;
+    out->is_powered = (in->flags & BIT(0)) != 0;
     out->flags = (in->flags & BIT(1)) != 0;
-    out->batteryCharge = in->batteryCharge;
+    out->battery_level = in->battery_level;
     out->buttons = in->buttons;
-    memcpy(out->joysticks, in->joysticks, sizeof(in->joysticks));
+    memcpy(&out->analog_stick_l, &in->analog_stick_l, sizeof(in->analog_stick_l));
+    memcpy(&out->analog_stick_r, &in->analog_stick_r, sizeof(in->analog_stick_r));
     out->unk_x20 = in->unk_x20;
 }
 
 static void _hiddbgConvertHiddbgHdlsStateFromV7(HiddbgHdlsState *out, const HiddbgHdlsStateV7 *in) {
     memset(out, 0, sizeof(*out));
 
-    out->batteryCharge = in->batteryCharge;
-    out->flags = (in->powerConnected & 1) | ((in->flags & 1)<<1);
+    out->battery_level = in->battery_level;
+    out->flags = (in->is_powered & 1) | ((in->flags & 1)<<1);
     out->buttons = in->buttons;
-    memcpy(out->joysticks, in->joysticks, sizeof(in->joysticks));
+    memcpy(&out->analog_stick_l, &in->analog_stick_l, sizeof(in->analog_stick_l));
+    memcpy(&out->analog_stick_r, &in->analog_stick_r, sizeof(in->analog_stick_r));
     out->unk_x20 = in->unk_x20;
 }
 
@@ -337,7 +374,7 @@ static void _hiddbgConvertHdlsStateListToV7(HiddbgHdlsStateListV7 *out, const Hi
     count = out->total_entries > 0x10 ? 0x10 : out->total_entries;
 
     for (s32 i=0; i<count; i++) {
-        out->entries[i].HdlsHandle = in->entries[i].HdlsHandle;
+        out->entries[i].handle = in->entries[i].handle;
         _hiddbgConvertHdlsDeviceInfoToV7(&out->entries[i].device, &in->entries[i].device);
         _hiddbgConvertHiddbgHdlsStateToV7(&out->entries[i].state, &in->entries[i].state);
     }
@@ -350,7 +387,7 @@ static void _hiddbgConvertHdlsStateListFromV7(HiddbgHdlsStateList *out, const Hi
     count = out->total_entries > 0x10 ? 0x10 : out->total_entries;
 
     for (s32 i=0; i<count; i++) {
-        out->entries[i].HdlsHandle = in->entries[i].HdlsHandle;
+        out->entries[i].handle = in->entries[i].handle;
         _hiddbgConvertHdlsDeviceInfoFromV7(&out->entries[i].device, &in->entries[i].device);
         _hiddbgConvertHiddbgHdlsStateFromV7(&out->entries[i].state, &in->entries[i].state);
     }
@@ -395,7 +432,7 @@ Result hiddbgReleaseHdlsWorkBuffer(void) {
     return rc;
 }
 
-Result hiddbgIsHdlsVirtualDeviceAttached(u64 HdlsHandle, bool *isAttached) {
+Result hiddbgIsHdlsVirtualDeviceAttached(HiddbgHdlsHandle handle, bool *out) {
     Result rc = 0;
 
     if (hosversionBefore(7,0,0))
@@ -406,13 +443,13 @@ Result hiddbgIsHdlsVirtualDeviceAttached(u64 HdlsHandle, bool *isAttached) {
 
     rc = _hiddbgCmdNoIO(327);
     if (R_FAILED(rc)) return rc;
-    if (isAttached) {
-        *isAttached = false;
+    if (out) {
+        *out = false;
         if (hosversionBefore(9,0,0)) {
             HiddbgHdlsStateListV7 *stateList = (HiddbgHdlsStateListV7*)(g_hiddbgHdlsTmem.src_addr);
             for (s32 i=0; i<stateList->total_entries; i++) {
-                if (stateList->entries[i].HdlsHandle == HdlsHandle) {
-                    *isAttached = true;
+                if (stateList->entries[i].handle.handle == handle.handle) {
+                    *out = true;
                     break;
                 }
             }
@@ -420,8 +457,8 @@ Result hiddbgIsHdlsVirtualDeviceAttached(u64 HdlsHandle, bool *isAttached) {
         else {
             HiddbgHdlsStateList *stateList = (HiddbgHdlsStateList*)(g_hiddbgHdlsTmem.src_addr);
             for (s32 i=0; i<stateList->total_entries; i++) {
-                if (stateList->entries[i].HdlsHandle == HdlsHandle) {
-                    *isAttached = true;
+                if (stateList->entries[i].handle.handle == handle.handle) {
+                    *out = true;
                     break;
                 }
             }
@@ -503,15 +540,15 @@ Result hiddbgApplyHdlsStateList(const HiddbgHdlsStateList *state) {
     return _hiddbgCmdNoIO(329);
 }
 
-static Result _hiddbgAttachHdlsVirtualDeviceV7(u64 *HdlsHandle, const HiddbgHdlsDeviceInfoV7 *info) {
-    return serviceDispatchInOut(&g_hiddbgSrv, 330, *info, *HdlsHandle);
+static Result _hiddbgAttachHdlsVirtualDeviceV7(HiddbgHdlsHandle *handle, const HiddbgHdlsDeviceInfoV7 *info) {
+    return serviceDispatchInOut(&g_hiddbgSrv, 330, *info, *handle);
 }
 
-static Result _hiddbgAttachHdlsVirtualDevice(u64 *HdlsHandle, const HiddbgHdlsDeviceInfo *info) {
-    return serviceDispatchInOut(&g_hiddbgSrv, 330, *info, *HdlsHandle);
+static Result _hiddbgAttachHdlsVirtualDevice(HiddbgHdlsHandle *handle, const HiddbgHdlsDeviceInfo *info) {
+    return serviceDispatchInOut(&g_hiddbgSrv, 330, *info, *handle);
 }
 
-Result hiddbgAttachHdlsVirtualDevice(u64 *HdlsHandle, const HiddbgHdlsDeviceInfo *info) {
+Result hiddbgAttachHdlsVirtualDevice(HiddbgHdlsHandle *handle, const HiddbgHdlsDeviceInfo *info) {
     if (hosversionBefore(7,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
@@ -521,42 +558,42 @@ Result hiddbgAttachHdlsVirtualDevice(u64 *HdlsHandle, const HiddbgHdlsDeviceInfo
     if (hosversionBefore(9,0,0)) {
         HiddbgHdlsDeviceInfoV7 infov7;
         _hiddbgConvertHdlsDeviceInfoToV7(&infov7, info);
-        return _hiddbgAttachHdlsVirtualDeviceV7(HdlsHandle, &infov7);
+        return _hiddbgAttachHdlsVirtualDeviceV7(handle, &infov7);
     }
     else
-        return _hiddbgAttachHdlsVirtualDevice(HdlsHandle, info);
+        return _hiddbgAttachHdlsVirtualDevice(handle, info);
 }
 
-Result hiddbgDetachHdlsVirtualDevice(u64 HdlsHandle) {
+Result hiddbgDetachHdlsVirtualDevice(HiddbgHdlsHandle handle) {
     if (hosversionBefore(7,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     if (!g_hiddbgHdlsInitialized)
         return MAKERESULT(Module_Libnx, LibnxError_NotInitialized);
 
-    return _hiddbgCmdInU64NoOut(HdlsHandle, 331);
+    return _hiddbgCmdInU64NoOut(handle.handle, 331);
 }
 
-static Result _hiddbgSetHdlsStateV7(u64 HdlsHandle, const HiddbgHdlsState *state) {
+static Result _hiddbgSetHdlsStateV7(HiddbgHdlsHandle handle, const HiddbgHdlsState *state) {
     struct {
         HiddbgHdlsStateV7 state;
-        u64 handle;
-    } in = { .handle = HdlsHandle };
+        HiddbgHdlsHandle handle;
+    } in = { .handle = handle };
     _hiddbgConvertHiddbgHdlsStateToV7(&in.state, state);
 
     return serviceDispatchIn(&g_hiddbgSrv, 332, in);
 }
 
-static Result _hiddbgSetHdlsState(u64 HdlsHandle, const HiddbgHdlsState *state) {
+static Result _hiddbgSetHdlsState(HiddbgHdlsHandle handle, const HiddbgHdlsState *state) {
     const struct {
-        u64 handle;
+        HiddbgHdlsHandle handle;
         HiddbgHdlsState state;
-    } in = { HdlsHandle, *state };
+    } in = { handle, *state };
 
     return serviceDispatchIn(&g_hiddbgSrv, 332, in);
 }
 
-Result hiddbgSetHdlsState(u64 HdlsHandle, const HiddbgHdlsState *state) {
+Result hiddbgSetHdlsState(HiddbgHdlsHandle handle, const HiddbgHdlsState *state) {
     if (hosversionBefore(7,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
@@ -564,8 +601,8 @@ Result hiddbgSetHdlsState(u64 HdlsHandle, const HiddbgHdlsState *state) {
         return MAKERESULT(Module_Libnx, LibnxError_NotInitialized);
 
     if (hosversionBefore(9,0,0))
-        return _hiddbgSetHdlsStateV7(HdlsHandle, state);
+        return _hiddbgSetHdlsStateV7(handle, state);
     else
-        return _hiddbgSetHdlsState(HdlsHandle, state);
+        return _hiddbgSetHdlsState(handle, state);
 }
 

@@ -49,7 +49,7 @@ typedef struct {
 /// Polling data extracted from \ref HidbusJoyPollingReceivedData.
 typedef struct {
     s16 data;                                     ///< Sensor state data.
-    u64 timestamp;                                ///< Sample timestamp.
+    u64 sampling_number;                          ///< SamplingNumber
 } RingConPollingData;
 
 /// Ring-Con state object.
@@ -58,7 +58,7 @@ typedef struct {
     HidbusBusHandle handle;
     void* workbuf;
     size_t workbuf_size;
-    u64 polling_last_timestamp;
+    u64 polling_last_sampling_number;
     u32 error_flags;
 
     u64 id_l, id_h;
@@ -74,9 +74,9 @@ typedef struct {
 /**
  * @brief Creates a \ref RingCon object, and handles the various initialization for it.
  * @param c \ref RingCon
- * @param[in] id \ref HidControllerID. A Ring-Con must be attached to this controller.
+ * @param[in] id \ref HidNpadIdType. A Ring-Con must be attached to this controller.
  */
-Result ringconCreate(RingCon *c, HidControllerID id);
+Result ringconCreate(RingCon *c, HidNpadIdType id);
 
 /**
  * @brief Close a \ref RingCon.

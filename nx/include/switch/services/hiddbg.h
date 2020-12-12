@@ -6,7 +6,44 @@
 #pragma once
 #include "../types.h"
 #include "../services/hid.h"
+#include "../services/hidsys.h"
 #include "../sf/service.h"
+
+/// HiddbgNpadButton. For the remaining buttons, see \ref HidNpadButton.
+typedef enum {
+    HiddbgNpadButton_Home    = BIT(18),         ///< HOME button
+    HiddbgNpadButton_Capture = BIT(19),         ///< Capture button
+} HiddbgNpadButton;
+
+/// State for overriding \ref HidDebugPadState.
+typedef struct {
+    u32 attributes;                             ///< Bitfield of \ref HidDebugPadAttribute.
+    u32 buttons;                                ///< Bitfield of \ref HidDebugPadButton.
+    HidAnalogStickState analog_stick_l;         ///< AnalogStickL
+    HidAnalogStickState analog_stick_r;         ///< AnalogStickR
+} HiddbgDebugPadAutoPilotState;
+
+/// State for overriding \ref HidMouseState.
+typedef struct {
+    s32 x;                                      ///< X
+    s32 y;                                      ///< Y
+    s32 delta_x;                                ///< DeltaX
+    s32 delta_y;                                ///< DeltaY
+    s32 wheel_delta;                            ///< WheelDelta
+    u32 buttons;                                ///< Bitfield of \ref HidMouseButton.
+    u32 attributes;                             ///< Bitfield of \ref HidMouseAttribute.
+} HiddbgMouseAutoPilotState;
+
+/// State for overriding \ref HidKeyboardState.
+typedef struct {
+    u64 modifiers;                              ///< Bitfield of \ref HidKeyboardModifier.
+    u64 keys[4];
+} HiddbgKeyboardAutoPilotState;
+
+/// HdlsHandle
+typedef struct {
+    u64 handle;               ///< Handle
+} HiddbgHdlsHandle;
 
 /// HdlsDeviceInfo, for [7.0.0-8.1.0].
 typedef struct {
@@ -20,7 +57,7 @@ typedef struct {
 /// HdlsDeviceInfo, for [9.0.0+]. Converted to/from \ref HiddbgHdlsDeviceInfoV7 on prior sysvers.
 typedef struct {
     u8 deviceType;            ///< \ref HidDeviceType
-    u8 npadInterfaceType;     ///< \ref HidNpadInterfaceType. Additional type field used with the above type field (only applies to ::HidDeviceType_JoyRight1, ::HidDeviceType_JoyLeft2, ::HidDeviceType_FullKey3, and ::HidDeviceType_System19), if the value doesn't match one of the following a default is used. ::HidDeviceType_FullKey3: ::NpadInterfaceType_USB indicates that the controller is connected via USB. :::HidDeviceType_System19: ::NpadInterfaceType_USB = unknown. When value is ::NpadInterfaceType_Rail, state is merged with an existing controller (with ::HidDeviceType_JoyRight1 / ::HidDeviceType_JoyLeft2). Otherwise, it's a dedicated controller.
+    u8 npadInterfaceType;     ///< \ref HidNpadInterfaceType. Additional type field used with the above type field (only applies to ::HidDeviceType_JoyRight1, ::HidDeviceType_JoyLeft2, ::HidDeviceType_FullKey3, and ::HidDeviceType_System19), if the value doesn't match one of the following a default is used. ::HidDeviceType_FullKey3: ::HidNpadInterfaceType_USB indicates that the controller is connected via USB. :::HidDeviceType_System19: ::HidNpadInterfaceType_USB = unknown. When value is ::HidNpadInterfaceType_Rail, state is merged with an existing controller (with ::HidDeviceType_JoyRight1 / ::HidDeviceType_JoyLeft2). Otherwise, it's a dedicated controller.
     u8 pad[0x2];              ///< Padding.
     u32 singleColorBody;      ///< RGBA Single Body Color.
     u32 singleColorButtons;   ///< RGBA Single Buttons Color.
@@ -30,29 +67,31 @@ typedef struct {
 
 /// HdlsState, for [7.0.0-8.1.0].
 typedef struct {
-    u8 powerConnected;                                    ///< powerConnected for the main PowerInfo, see \ref HidFlags.
-    u8 flags;                                             ///< ORRed with powerConnected to set the value of the first byte for \ref HidFlags. For example, value 1 here will set isCharging for the main PowerInfo.
+    u8 is_powered;                                        ///< IsPowered for the main PowerInfo, see \ref HidNpadSystemProperties.
+    u8 flags;                                             ///< ORRed with IsPowered to set the value of the first byte for \ref HidNpadSystemProperties. For example, value 1 here will set IsCharging for the main PowerInfo.
     u8 unk_x2[0x6];                                       ///< Unknown
-    u32 batteryCharge;                                    ///< batteryCharge for the main PowerInfo, see \ref HidPowerInfo.
-    u32 buttons;                                          ///< See \ref HidControllerKeys.
-    JoystickPosition joysticks[JOYSTICK_NUM_STICKS];      ///< \ref JoystickPosition
+    u32 battery_level;                                    ///< BatteryLevel for the main PowerInfo, see \ref HidPowerInfo.
+    u32 buttons;                                          ///< See \ref HiddbgNpadButton.
+    HidAnalogStickState analog_stick_l;                   ///< AnalogStickL
+    HidAnalogStickState analog_stick_r;                   ///< AnalogStickR
     u8 unk_x20;                                           ///< Unused for input. Set with output from \ref hiddbgDumpHdlsStates. Not set by \ref hiddbgGetAbstractedPadsState.
     u8 padding[0x3];                                      ///< Padding
 } HiddbgHdlsStateV7;
 
-/// HdlsState, for [9.0.0+]. Converted to/from \ref HiddbgHdlsDeviceInfoV7 on prior sysvers.
+/// HdlsState, for [9.0.0+]. Converted to/from \ref HiddbgHdlsStateV7 on prior sysvers.
 typedef struct {
-    u32 batteryCharge;                                    ///< batteryCharge for the main PowerInfo, see \ref HidPowerInfo.
-    u32 flags;                                            ///< Used to set the main PowerInfo for \ref HidFlags. BIT(0) -> powerConnected, BIT(1) -> isCharging.
-    u64 buttons;                                          ///< See \ref HidControllerKeys. [9.0.0+] Masked with 0xfffffffff00fffff.
-    JoystickPosition joysticks[JOYSTICK_NUM_STICKS];      ///< \ref JoystickPosition
+    u32 battery_level;                                    ///< BatteryLevel for the main PowerInfo, see \ref HidPowerInfo.
+    u32 flags;                                            ///< Used to set the main PowerInfo for \ref HidNpadSystemProperties. BIT(0) -> IsPowered, BIT(1) -> IsCharging.
+    u64 buttons;                                          ///< See \ref HiddbgNpadButton. [9.0.0+] Masked with 0xfffffffff00fffff.
+    HidAnalogStickState analog_stick_l;                   ///< AnalogStickL
+    HidAnalogStickState analog_stick_r;                   ///< AnalogStickR
     u8 unk_x20;                                           ///< Unused for input. Set with output from \ref hiddbgDumpHdlsStates.
     u8 padding[0x3];                                      ///< Padding
 } HiddbgHdlsState;
 
 /// HdlsNpadAssignmentEntry
 typedef struct {
-    u64 HdlsHandle;                             ///< HdlsHandle
+    HiddbgHdlsHandle handle;                    ///< \ref HiddbgHdlsHandle
     u32 unk_x8;                                 ///< Unknown
     u32 unk_xc;                                 ///< Unknown
     u64 unk_x10;                                ///< Unknown
@@ -69,9 +108,9 @@ typedef struct {
 
 /// HdlsStateListEntryV7, for [7.0.0-8.1.0].
 typedef struct {
-    u64 HdlsHandle;                             ///< HdlsHandle
+    HiddbgHdlsHandle handle;                    ///< \ref HiddbgHdlsHandle
     HiddbgHdlsDeviceInfoV7 device;              ///< \ref HiddbgHdlsDeviceInfoV7. With \ref hiddbgApplyHdlsStateList this is only used when creating new devices.
-    HiddbgHdlsStateV7 state;                      ///< \ref HiddbgHdlsState
+    HiddbgHdlsStateV7 state;                    ///< \ref HiddbgHdlsState
 } HiddbgHdlsStateListEntryV7;
 
 /// HdlsStateListV7, for [7.0.0-8.1.0]. This contains a list of all controllers, including non-virtual controllers.
@@ -83,7 +122,7 @@ typedef struct {
 
 /// HdlsStateListEntry, for [9.0.0+]. Converted to/from \ref HiddbgHdlsStateListEntryV7 on prior sysvers.
 typedef struct {
-    u64 HdlsHandle;                             ///< HdlsHandle
+    HiddbgHdlsHandle handle;                    ///< \ref HiddbgHdlsHandle
     HiddbgHdlsDeviceInfo device;                ///< \ref HiddbgHdlsDeviceInfo. With \ref hiddbgApplyHdlsStateList this is only used when creating new devices.
     alignas(8) HiddbgHdlsState state;           ///< \ref HiddbgHdlsState
 } HiddbgHdlsStateListEntry;
@@ -96,10 +135,15 @@ typedef struct {
     HiddbgHdlsStateListEntry entries[0x10];     ///< \ref HiddbgHdlsStateListEntry
 } HiddbgHdlsStateList;
 
+/// AbstractedPadHandle
+typedef struct {
+    u64 handle;                                 ///< Handle
+} HiddbgAbstractedPadHandle;
+
 /// AbstractedPadState
 typedef struct {
     u32 type;                 ///< Type. Converted to HiddbgHdlsDeviceInfoV7::type internally by \ref hiddbgSetAutoPilotVirtualPadState. BIT(0) -> BIT(0), BIT(1) -> BIT(15), BIT(2-3) -> BIT(1-2), BIT(4-5) -> BIT(1-2), BIT(6) -> BIT(3). BIT(7-11) -> BIT(11-15), BIT(12-14) -> BIT(12-14), BIT(15) -> BIT(17), BIT(31) -> BIT(21).
-    u8 flags;                ///< Flags. Only bit0 is used by \ref hiddbgSetAutoPilotVirtualPadState: when clear it will skip using the rest of the input and run \ref hiddbgUnsetAutoPilotVirtualPadState internally.
+    u8 flags;                ///< Flags. Only bit0 is used by \ref hiddbgSetAutoPilotVirtualPadState, when clear it will skip using the rest of the input and run \ref hiddbgUnsetAutoPilotVirtualPadState internally.
     u8 pad[0x3];              ///< Padding
 
     u32 singleColorBody;      ///< RGBA Single Body Color
@@ -107,9 +151,9 @@ typedef struct {
     u8 npadInterfaceType;     ///< See HiddbgHdlsDeviceInfo::npadInterfaceType.
     u8 pad2[0x3];             ///< Padding
 
-    HiddbgHdlsStateV7 state;    ///< State
+    HiddbgHdlsStateV7 state;  ///< State
 
-    u8 unused[0x60];         ///< Unused with \ref hiddbgSetAutoPilotVirtualPadState. Not set by \ref hiddbgGetAbstractedPadsState.
+    u8 unused[0x60];          ///< Unused with \ref hiddbgSetAutoPilotVirtualPadState. Not set by \ref hiddbgGetAbstractedPadsState.
 } HiddbgAbstractedPadState;
 
 /// Initialize hiddbg.
@@ -121,92 +165,256 @@ void hiddbgExit(void);
 /// Gets the Service object for the actual hiddbg service session.
 Service* hiddbgGetServiceSession(void);
 
-/// Ignores subsequent home button presses.
+/**
+ * @brief SetDebugPadAutoPilotState
+ * @param[in] state \ref HiddbgDebugPadAutoPilotState
+ */
+Result hiddbgSetDebugPadAutoPilotState(const HiddbgDebugPadAutoPilotState *state);
+
+/**
+ * @brief UnsetDebugPadAutoPilotState
+ */
+Result hiddbgUnsetDebugPadAutoPilotState(void);
+
+/**
+ * @brief SetTouchScreenAutoPilotState
+ * @param[in] states Input array of \ref HiddbgMouseAutoPilotState.
+ * @param[in] count Total entries in the states array. Max is 16.
+ */
+Result hiddbgSetTouchScreenAutoPilotState(const HidTouchState *states, s32 count);
+
+/**
+ * @brief UnsetTouchScreenAutoPilotState
+ */
+Result hiddbgUnsetTouchScreenAutoPilotState(void);
+
+/**
+ * @brief SetMouseAutoPilotState
+ * @param[in] state \ref HiddbgMouseAutoPilotState
+ */
+Result hiddbgSetMouseAutoPilotState(const HiddbgMouseAutoPilotState *state);
+
+/**
+ * @brief UnsetMouseAutoPilotState
+ */
+Result hiddbgUnsetMouseAutoPilotState(void);
+
+/**
+ * @brief SetKeyboardAutoPilotState
+ * @param[in] state \ref HiddbgKeyboardAutoPilotState
+ */
+Result hiddbgSetKeyboardAutoPilotState(const HiddbgKeyboardAutoPilotState *state);
+
+/**
+ * @brief UnsetKeyboardAutoPilotState
+ */
+Result hiddbgUnsetKeyboardAutoPilotState(void);
+
+/**
+ * @brief Deactivates the HomeButton.
+ */
 Result hiddbgDeactivateHomeButton(void);
 
-/// Writes the input RGB colors to the spi-flash for the specified controller (offset 0x6050 size 0x6). See hidsys.h for UniquePadId. Only available with [3.0.0+].
-Result hiddbgUpdateControllerColor(u32 colorBody, u32 colorButtons, u64 UniquePadId);
+/**
+ * @brief Writes the input RGB colors to the spi-flash for the specified UniquePad (offset 0x6050 size 0x6).
+ * @note Only available with [3.0.0+].
+ * @param[in] colorBody RGB body color.
+ * @param[in] colorButtons RGB buttons color.
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+ */
+Result hiddbgUpdateControllerColor(u32 colorBody, u32 colorButtons, HidsysUniquePadId unique_pad_id);
 
-/// Writes the input RGB colors followed by inval to the spi-flash for the specified controller (offset 0x6050 size 0xD). See hidsys.h for UniquePadId. Only available with [5.0.0+].
-Result hiddbgUpdateDesignInfo(u32 colorBody, u32 colorButtons, u32 colorLeftGrip, u32 colorRightGrip, u8 inval, u64 UniquePadId);
+/**
+ * @brief Writes the input RGB colors followed by inval to the spi-flash for the specified UniquePad (offset 0x6050 size 0xD).
+ * @note Only available with [5.0.0+].
+ * @param[in] colorBody RGB body color.
+ * @param[in] colorButtons RGB buttons color.
+ * @param[in] colorLeftGrip RGB left grip color.
+ * @param[in] colorRightGrip RGB right grip color.
+ * @param[in] inval Input value.
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+ */
+Result hiddbgUpdateDesignInfo(u32 colorBody, u32 colorButtons, u32 colorLeftGrip, u32 colorRightGrip, u8 inval, HidsysUniquePadId unique_pad_id);
 
-/// Get the OperationEvent for the specified controller. See hidsys.h for UniquePadId.
-/// The Event must be closed by the user once finished with it.
-/// Only available with [6.0.0+].
-Result hiddbgAcquireOperationEventHandle(Event* out_event, bool autoclear, u64 UniquePadId);
+/**
+ * @brief Get the OperationEvent for the specified UniquePad.
+ * @note The Event must be closed by the user once finished with it.
+ * @note Only available with [6.0.0+].
+ * @param[out] out_event Output Event.
+ * @param[in] autoclear The autoclear for the Event.
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+**/
+Result hiddbgAcquireOperationEventHandle(Event* out_event, bool autoclear, HidsysUniquePadId unique_pad_id);
 
-/// Reads spi-flash for the specified controller. See hidsys.h for UniquePadId.
-/// This also uses \ref hiddbgAcquireOperationEventHandle to wait for the operation to finish, then \ref hiddbgGetOperationResult is used.
-/// Only available with [6.0.0+].
-Result hiddbgReadSerialFlash(u32 offset, void* buffer, size_t size, u64 UniquePadId);
+/**
+ * @brief Reads spi-flash for the specified UniquePad.
+ * @note This also uses \ref hiddbgAcquireOperationEventHandle to wait for the operation to finish, then \ref hiddbgGetOperationResult is used.
+ * @note Only available with [6.0.0+].
+ * @param[in] offset Offset in spi-flash.
+ * @param[out] buffer Output buffer.
+ * @param[in] size Output buffer size.
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+**/
+Result hiddbgReadSerialFlash(u32 offset, void* buffer, size_t size, HidsysUniquePadId unique_pad_id);
 
-/// Writes spi-flash for the specified controller. See hidsys.h for UniquePadId.
-/// buffer and tmem_size must be page-aligned. size is the actual transfer size.
-/// This also uses \ref hiddbgAcquireOperationEventHandle to wait for the operation to finish, then \ref hiddbgGetOperationResult is used.
-/// Only available with [6.0.0+].
-Result hiddbgWriteSerialFlash(u32 offset, void* buffer, size_t tmem_size, size_t size, u64 UniquePadId);
+/**
+ * @brief Writes spi-flash for the specified UniquePad.
+ * @note This also uses \ref hiddbgAcquireOperationEventHandle to wait for the operation to finish, then \ref hiddbgGetOperationResult is used.
+ * @note Only available with [6.0.0+].
+ * @param[in] offset Offset in spi-flash.
+ * @param[in] buffer Input buffer, must be 0x1000-byte aligned.
+ * @param[in] tmem_size Size of the buffer, must be 0x1000-byte aligned.
+ * @param[in] size Actual transfer size.
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+**/
+Result hiddbgWriteSerialFlash(u32 offset, void* buffer, size_t tmem_size, size_t size, HidsysUniquePadId unique_pad_id);
 
-/// Get the Result for the Operation and handles cleanup, for the specified controller. See hidsys.h for UniquePadId.
-/// Only available with [6.0.0+].
-Result hiddbgGetOperationResult(u64 UniquePadId);
+/**
+ * @brief Get the Result for the Operation and handles cleanup, for the specified UniquePad.
+ * @note Only available with [6.0.0+].
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+**/
+Result hiddbgGetOperationResult(HidsysUniquePadId unique_pad_id);
 
-/// Gets the internal DeviceType for the specified controller. See hidsys.h for UniquePadId.
-/// Only available with [6.0.0+].
-/// Pre-9.0.0 the output is an u32, with [9.0.0+] it's an u8.
-Result hiddbgGetUniquePadDeviceTypeSetInternal(u64 UniquePadId, u32 *out);
+/**
+ * @brief Gets the internal DeviceType for the specified controller.
+ * @note Only available with [6.0.0+].
+ * @param[in] unique_pad_id \ref HidsysUniquePadId
+ * @param[out] out Pre-9.0.0 this is an u32, with [9.0.0+] it's an u8.
+**/
+Result hiddbgGetUniquePadDeviceTypeSetInternal(HidsysUniquePadId unique_pad_id, u32 *out);
 
-/// Gets a list of AbstractedPadHandles, where AbstractedPadHandles is the output array with max entries = count. total_entries is total entries written to the output array.
-/// Only available with [5.0.0-8.1.0].
-Result hiddbgGetAbstractedPadHandles(u64 *AbstractedPadHandles, s32 count, s32 *total_entries);
+/** @name AbstractedPad
+ *  This is for virtual HID controllers. Only use this on pre-7.0.0, Hdls should be used otherwise.
+ */
+///@{
 
-/// Gets the state for the specified AbstractedPadHandle.
-/// Only available with [5.0.0-8.1.0].
-Result hiddbgGetAbstractedPadState(u64 AbstractedPadHandle, HiddbgAbstractedPadState *state);
+/**
+ * @brief Gets a list of \ref HiddbgAbstractedPadHandle.
+ * @note Only available with [5.0.0-8.1.0].
+ * @param[out] handles Output array of \ref HiddbgAbstractedPadHandle.
+ * @param[in] count Max number of entries for the handles array.
+ * @param[out] total_out Total output entries.
+ */
+Result hiddbgGetAbstractedPadHandles(HiddbgAbstractedPadHandle *handles, s32 count, s32 *total_out);
 
-/// Similar to \ref hiddbgGetAbstractedPadHandles except this also returns the state for each pad in output array states.
-/// Only available with [5.0.0-8.1.0].
-Result hiddbgGetAbstractedPadsState(u64 *AbstractedPadHandles, HiddbgAbstractedPadState *states, s32 count, s32 *total_entries);
+/**
+ * @brief Gets the state for the specified \ref HiddbgAbstractedPadHandle.
+ * @note Only available with [5.0.0-8.1.0].
+ * @param[in] handle \ref HiddbgAbstractedPadHandle
+ * @param[out] state \ref HiddbgAbstractedPadState
+ */
+Result hiddbgGetAbstractedPadState(HiddbgAbstractedPadHandle handle, HiddbgAbstractedPadState *state);
 
-/// Sets AutoPilot state for the specified pad.
-/// AbstractedVirtualPadId can be any unique value as long as it's within bounds. For example, 0-7 is usable.
-/// Only available with [5.0.0-8.1.0].
+/**
+ * @brief Similar to \ref hiddbgGetAbstractedPadHandles except this also returns the state for each pad in output array states.
+ * @note Only available with [5.0.0-8.1.0].
+ * @param[out] handles Output array of \ref HiddbgAbstractedPadHandle.
+ * @param[out] states Output array of \ref HiddbgAbstractedPadState.
+ * @param[in] count Max number of entries for the handles/states arrays.
+ * @param[out] total_out Total output entries.
+ */
+Result hiddbgGetAbstractedPadsState(HiddbgAbstractedPadHandle *handles, HiddbgAbstractedPadState *states, s32 count, s32 *total_out);
+
+/**
+ * @brief Sets AutoPilot state for the specified pad.
+ * @note Only available with [5.0.0-8.1.0].
+ * @param[in] AbstractedVirtualPadId This can be any unique value as long as it's within bounds. For example, 0-7 is usable.
+ * @param[in] state \ref HiddbgAbstractedPadState
+ */
 Result hiddbgSetAutoPilotVirtualPadState(s8 AbstractedVirtualPadId, const HiddbgAbstractedPadState *state);
 
-/// Clears AutoPilot state for the specified pad set by \ref hiddbgSetAutoPilotVirtualPadState.
-/// Only available with [5.0.0-8.1.0].
+/**
+ * @brief Clears AutoPilot state for the specified pad set by \ref hiddbgSetAutoPilotVirtualPadState.
+ * @note Only available with [5.0.0-8.1.0].
+ * @param[in] AbstractedVirtualPadId Id from \ref hiddbgSetAutoPilotVirtualPadState.
+ */
 Result hiddbgUnsetAutoPilotVirtualPadState(s8 AbstractedVirtualPadId);
 
-/// Clears AutoPilot state for all pads set by \ref hiddbgSetAutoPilotVirtualPadState.
+/**
+ * @brief Clears AutoPilot state for all pads set by \ref hiddbgSetAutoPilotVirtualPadState.
+ */
 Result hiddbgUnsetAllAutoPilotVirtualPadState(void);
 
-/// Initialize Hdls. Hdls is for virtual HID controllers. Only available with [7.0.0+].
+///@}
+
+/** @name Hdls
+ *  This is for virtual HID controllers.
+ */
+///@{
+
+/**
+ * @brief Initialize Hdls.
+ * @note Only available with [7.0.0+].
+ */
 Result hiddbgAttachHdlsWorkBuffer(void);
 
-/// Exit Hdls, must be called at some point prior to hiddbgExit. Only available with [7.0.0+].
+/**
+ * @brief Exit Hdls, must be called at some point prior to \ref hiddbgExit.
+ * @note Only available with [7.0.0+].
+ */
 Result hiddbgReleaseHdlsWorkBuffer(void);
 
-/// Checks if the given HdlsHandle is still attached, where the result is written to isAttached.  Only available with [7.0.0+].
-Result hiddbgIsHdlsVirtualDeviceAttached(u64 HdlsHandle, bool *isAttached);
+/**
+ * @brief Checks if the given device is still attached.
+ * @note Only available with [7.0.0+].
+ * @param[in] handle \ref HiddbgHdlsHandle
+ * @param[out] out Whether the device is attached.
+ */
+Result hiddbgIsHdlsVirtualDeviceAttached(HiddbgHdlsHandle handle, bool *out);
 
-/// Gets state for \ref HiddbgHdlsNpadAssignment. Only available with [7.0.0+].
+/**
+ * @brief Gets state for \ref HiddbgHdlsNpadAssignment.
+ * @note Only available with [7.0.0+].
+ * @param[out] state \ref HiddbgHdlsNpadAssignment
+ */
 Result hiddbgDumpHdlsNpadAssignmentState(HiddbgHdlsNpadAssignment *state);
 
-/// Gets state for \ref HiddbgHdlsStateList. Only available with [7.0.0+].
+/**
+ * @brief Gets state for \ref HiddbgHdlsStateList.
+ * @note Only available with [7.0.0+].
+ * @param[out] state \ref HiddbgHdlsStateList
+ */
 Result hiddbgDumpHdlsStates(HiddbgHdlsStateList *state);
 
-/// Sets state for \ref HiddbgHdlsNpadAssignment. Only available with [7.0.0+].
+/**
+ * @brief Sets state for \ref HiddbgHdlsNpadAssignment.
+ * @note Only available with [7.0.0+].
+ * @param[in] state \ref HiddbgHdlsNpadAssignment
+ * @param[in] flag Flag
+ */
 Result hiddbgApplyHdlsNpadAssignmentState(const HiddbgHdlsNpadAssignment *state, bool flag);
 
-/// Sets state for \ref HiddbgHdlsStateList. Only available with [7.0.0+].
-/// The HiddbgHdlsState will be applied for each HdlsHandle. If a HdlsHandle is not found, code similar to \ref hiddbgAttachHdlsVirtualDevice will run with the \ref HiddbgHdlsDeviceInfo, then it will continue with applying state with the new device.
+/**
+ * @brief Sets state for \ref HiddbgHdlsStateList.
+ * @note The \ref HiddbgHdlsState will be applied for each \ref HiddbgHdlsHandle. If a \ref HiddbgHdlsHandle is not found, code similar to \ref hiddbgAttachHdlsVirtualDevice will run with the \ref HiddbgHdlsDeviceInfo, then it will continue with applying state with the new device.
+ * @note Only available with [7.0.0+].
+ * @param[in] state \ref HiddbgHdlsStateList
+ */
 Result hiddbgApplyHdlsStateList(const HiddbgHdlsStateList *state);
 
-/// Attach a device with the input info, where the output handle is written to HdlsHandle. Only available with [7.0.0+].
-Result hiddbgAttachHdlsVirtualDevice(u64 *HdlsHandle, const HiddbgHdlsDeviceInfo *info);
+/**
+ * @brief Attach a device with the input info.
+ * @note Only available with [7.0.0+].
+ * @param[out] handle \ref HiddbgHdlsHandle
+ * @param[in] info \ref HiddbgHdlsDeviceInfo
+ */
+Result hiddbgAttachHdlsVirtualDevice(HiddbgHdlsHandle *handle, const HiddbgHdlsDeviceInfo *info);
 
-/// Detach the specified device. Only available with [7.0.0+].
-Result hiddbgDetachHdlsVirtualDevice(u64 HdlsHandle);
+/**
+ * @brief Detach the specified device.
+ * @note Only available with [7.0.0+].
+ * @param[in] handle \ref HiddbgHdlsHandle
+ */
+Result hiddbgDetachHdlsVirtualDevice(HiddbgHdlsHandle handle);
 
-/// Sets state for the specified device. Only available with [7.0.0+].
-Result hiddbgSetHdlsState(u64 HdlsHandle, const HiddbgHdlsState *state);
+/**
+ * @brief Sets state for the specified device.
+ * @note Only available with [7.0.0+].
+ * @param[in] handle \ref HiddbgHdlsHandle
+ * @param[in] state \ref HiddbgHdlsState
+ */
+Result hiddbgSetHdlsState(HiddbgHdlsHandle handle, const HiddbgHdlsState *state);
+
+///@}
 
