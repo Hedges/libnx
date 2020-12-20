@@ -32,8 +32,8 @@ typedef enum {
 
 /// OperationMode
 typedef enum {
-    AppletOperationMode_Handheld = 0,
-    AppletOperationMode_Docked = 1,
+    AppletOperationMode_Handheld = 0,                  ///< Handheld
+    AppletOperationMode_Console  = 1,                  ///< Console (Docked / TV-mode)
 } AppletOperationMode;
 
 /// applet hook types.
@@ -42,9 +42,9 @@ typedef enum {
     AppletHookType_OnOperationMode,                     ///< ::AppletMessage_OperationModeChanged
     AppletHookType_OnPerformanceMode,                   ///< ::AppletMessage_PerformanceModeChanged
     AppletHookType_OnExitRequest,                       ///< ::AppletMessage_ExitRequested
-    AppletHookType_OnRestart,                           ///< ::AppletMessage_Restart
+    AppletHookType_OnResume,                            ///< ::AppletMessage_Resume
     AppletHookType_OnCaptureButtonShortPressed,         ///< ::AppletMessage_CaptureButtonShortPressed
-    AppletHookType_OnAlbumImageTaken,                   ///< ::AppletMessage_AlbumImageTaken
+    AppletHookType_OnAlbumScreenShotTaken,              ///< ::AppletMessage_AlbumScreenShotTaken
     AppletHookType_RequestToDisplay,                    ///< ::AppletMessage_RequestToDisplay
 
     AppletHookType_Max,                                 ///< Number of applet hook types.
@@ -52,31 +52,32 @@ typedef enum {
 
 /// AppletMessage, for \ref appletGetMessage. See also \ref AppletHookType.
 typedef enum {
-    AppletMessage_ExitRequested             = 0x4,    ///< Exit requested.
-    AppletMessage_FocusStateChanged         = 0xF,    ///< FocusState changed.
-    AppletMessage_Restart                   = 0x10,   ///< Current applet execution was resumed.
-    AppletMessage_OperationModeChanged      = 0x1E,   ///< OperationMode changed.
-    AppletMessage_PerformanceModeChanged    = 0x1F,   ///< PerformanceMode changed.
-    AppletMessage_RequestToDisplay          = 0x33,   ///< Display requested, see \ref appletApproveToDisplay.
-    AppletMessage_CaptureButtonShortPressed = 0x5A,   ///< Capture button was short-pressed.
-    AppletMessage_AlbumImageTaken           = 0x5C,   ///< Screenshot was taken.
+    AppletMessage_ExitRequest               = 4,    ///< Exit request.
+    AppletMessage_FocusStateChanged         = 15,   ///< FocusState changed.
+    AppletMessage_Resume                    = 16,   ///< Current applet execution was resumed.
+    AppletMessage_OperationModeChanged      = 30,   ///< OperationMode changed.
+    AppletMessage_PerformanceModeChanged    = 31,   ///< PerformanceMode changed.
+    AppletMessage_RequestToDisplay          = 51,   ///< Display requested, see \ref appletApproveToDisplay.
+    AppletMessage_CaptureButtonShortPressed = 90,   ///< Capture button was short-pressed.
+    AppletMessage_AlbumScreenShotTaken      = 92,   ///< Screenshot was taken.
+    AppletMessage_AlbumRecordingSaved       = 93,   ///< AlbumRecordingSaved
 } AppletMessage;
 
 /// FocusState
 typedef enum {
-    AppletFocusState_Focused = 1,                   ///< Applet is focused.
-    AppletFocusState_NotFocusedLibraryApplet = 2,   ///< Out of focus - LibraryApplet open.
-    AppletFocusState_NotFocusedHomeSleep = 3        ///< Out of focus - HOME menu open / console is sleeping.
+    AppletFocusState_InFocus    = 1,                  ///< Applet is focused.
+    AppletFocusState_OutOfFocus = 2,                  ///< Out of focus - LibraryApplet open.
+    AppletFocusState_Background = 3                   ///< Out of focus - HOME menu open / console is sleeping.
 } AppletFocusState;
 
 /// FocusHandlingMode
 typedef enum {
-  AppletFocusHandlingMode_SuspendHomeSleep = 0,       ///< Suspend only when HOME menu is open / console is sleeping (default).
-  AppletFocusHandlingMode_NoSuspend,                  ///< Don't suspend when out of focus.
-  AppletFocusHandlingMode_SuspendHomeSleepNotify,     ///< Suspend only when HOME menu is open / console is sleeping but still receive OnFocusState hook.
-  AppletFocusHandlingMode_AlwaysSuspend,              ///< Always suspend when out of focus, regardless of the reason.
+    AppletFocusHandlingMode_SuspendHomeSleep = 0,       ///< Suspend only when HOME menu is open / console is sleeping (default).
+    AppletFocusHandlingMode_NoSuspend,                  ///< Don't suspend when out of focus.
+    AppletFocusHandlingMode_SuspendHomeSleepNotify,     ///< Suspend only when HOME menu is open / console is sleeping but still receive OnFocusState hook.
+    AppletFocusHandlingMode_AlwaysSuspend,              ///< Always suspend when out of focus, regardless of the reason.
 
-  AppletFocusHandlingMode_Max,                        ///< Number of focus handling modes.
+    AppletFocusHandlingMode_Max,                        ///< Number of focus handling modes.
 } AppletFocusHandlingMode;
 
 /// LaunchParameterKind
@@ -88,27 +89,28 @@ typedef enum {
 
 /// AppletId
 typedef enum {
-    AppletId_application = 0x01,    ///<                  Application. Not valid for use with LibraryApplets.
-    AppletId_overlayDisp = 0x02,    ///< 010000000000100C "overlayDisp"
-    AppletId_qlaunch = 0x03,        ///< 0100000000001000 "qlaunch" (SystemAppletMenu)
-    AppletId_starter = 0x04,        ///< 0100000000001012 "starter" SystemApplication.
-    AppletId_auth = 0x0A,           ///< 0100000000001001 "auth"
-    AppletId_cabinet = 0x0B,        ///< 0100000000001002 "cabinet"
-    AppletId_controller = 0x0C,     ///< 0100000000001003 "controller"
-    AppletId_dataErase = 0x0D,      ///< 0100000000001004 "dataErase"
-    AppletId_error = 0x0E,          ///< 0100000000001005 "error"
-    AppletId_netConnect = 0x0F,     ///< 0100000000001006 "netConnect"
-    AppletId_playerSelect = 0x10,   ///< 0100000000001007 "playerSelect"
-    AppletId_swkbd = 0x11,          ///< 0100000000001008 "swkbd"
-    AppletId_miiEdit = 0x12,        ///< 0100000000001009 "miiEdit"
-    AppletId_web = 0x13,            ///< 010000000000100A "LibAppletWeb" WebApplet applet
-    AppletId_shop = 0x14,           ///< 010000000000100B "LibAppletShop" ShopN applet
-    AppletId_photoViewer = 0x15,    ///< 010000000000100D "photoViewer"
-    AppletId_set = 0x16,            ///< 010000000000100E "set" (This applet is currently not present on retail devices.)
-    AppletId_offlineWeb = 0x17,     ///< 010000000000100F "LibAppletOff" Offline web-applet
-    AppletId_loginShare = 0x18,     ///< 0100000000001010 "LibAppletLns" Whitelisted web-applet
-    AppletId_wifiWebAuth = 0x19,    ///< 0100000000001011 "LibAppletAuth" WifiWebAuth applet
-    AppletId_myPage = 0x1A,         ///< 0100000000001013 "myPage"
+    AppletId_None                      = 0x00,        ///<                  None
+    AppletId_application               = 0x01,        ///<                  Application. Not valid for use with LibraryApplets.
+    AppletId_OverlayApplet             = 0x02,        ///< 010000000000100C "overlayDisp"
+    AppletId_SystemAppletMenu          = 0x03,        ///< 0100000000001000 "qlaunch" (SystemAppletMenu)
+    AppletId_SystemApplication         = 0x04,        ///< 0100000000001012 "starter" SystemApplication.
+    AppletId_LibraryAppletAuth         = 0x0A,        ///< 0100000000001001 "auth"
+    AppletId_LibraryAppletCabinet      = 0x0B,        ///< 0100000000001002 "cabinet"
+    AppletId_LibraryAppletController   = 0x0C,        ///< 0100000000001003 "controller"
+    AppletId_LibraryAppletDataErase    = 0x0D,        ///< 0100000000001004 "dataErase"
+    AppletId_LibraryAppletError        = 0x0E,        ///< 0100000000001005 "error"
+    AppletId_LibraryAppletNetConnect   = 0x0F,        ///< 0100000000001006 "netConnect"
+    AppletId_LibraryAppletPlayerSelect = 0x10,        ///< 0100000000001007 "playerSelect"
+    AppletId_LibraryAppletSwkbd        = 0x11,        ///< 0100000000001008 "swkbd"
+    AppletId_LibraryAppletMiiEdit      = 0x12,        ///< 0100000000001009 "miiEdit"
+    AppletId_LibraryAppletWeb          = 0x13,        ///< 010000000000100A "LibAppletWeb" WebApplet applet
+    AppletId_LibraryAppletShop         = 0x14,        ///< 010000000000100B "LibAppletShop" ShopN applet
+    AppletId_LibraryAppletPhotoViewer  = 0x15,        ///< 010000000000100D "photoViewer"
+    AppletId_LibraryAppletSet          = 0x16,        ///< 010000000000100E "set" (This applet is currently not present on retail devices.)
+    AppletId_LibraryAppletOfflineWeb   = 0x17,        ///< 010000000000100F "LibAppletOff" offlineWeb applet
+    AppletId_LibraryAppletLoginShare   = 0x18,        ///< 0100000000001010 "LibAppletLns" loginShare web-applet
+    AppletId_LibraryAppletWifiWebAuth  = 0x19,        ///< 0100000000001011 "LibAppletAuth" wifiWebAuth applet
+    AppletId_LibraryAppletMyPage       = 0x1A,        ///< 0100000000001013 "myPage"
 } AppletId;
 
 /// LibraryAppletMode
@@ -186,8 +188,8 @@ typedef enum {
 
 /// Input mode values for \ref appletSetWirelessPriorityMode.
 typedef enum {
-    AppletWirelessPriorityMode_Unknown1 = 1,       ///< Unknown.
-    AppletWirelessPriorityMode_Unknown2 = 2,       ///< Unknown.
+    AppletWirelessPriorityMode_Default          = 1,       ///< Default
+    AppletWirelessPriorityMode_OptimizedForWlan = 2,       ///< OptimizedForWlan
 } AppletWirelessPriorityMode;
 
 /// CaptureSharedBuffer for the IDisplayController commands.
@@ -196,6 +198,12 @@ typedef enum {
     AppletCaptureSharedBuffer_LastForeground  = 1,                     ///< LastForeground
     AppletCaptureSharedBuffer_CallerApplet    = 2,                     ///< CallerApplet
 } AppletCaptureSharedBuffer;
+
+/// WindowOriginMode
+typedef enum {
+    AppletWindowOriginMode_LowerLeft          = 0,                     ///< LowerLeft
+    AppletWindowOriginMode_UpperLeft          = 1,                     ///< UpperLeft
+} AppletWindowOriginMode;
 
 /// ProgramSpecifyKind for the ExecuteProgram cmd. Controls the type of the u64 passed to the ExecuteProgram cmd.
 typedef enum {
@@ -246,6 +254,11 @@ typedef struct {
     Event StateChangedEvent;                   ///< Output from GetAppletStateChangedEvent, autoclear=false.
     AppletApplicationExitReason exitreason;    ///< Set by \ref appletApplicationJoin using the output from cmd GetResult, see \ref AppletApplicationExitReason.
 } AppletApplication;
+
+/// GpuErrorHandler
+typedef struct {
+    Service s;                                 ///< IGpuErrorHandler
+} AppletGpuErrorHandler;
 
 /// Used by \ref appletInitialize with __nx_applet_AppletAttribute for cmd OpenLibraryAppletProxy (AppletType_LibraryApplet), on [3.0.0+]. The default for this struct is all-zero.
 typedef struct {
@@ -412,6 +425,13 @@ Result appletReleaseSleepLock(void);
 Result appletReleaseSleepLockTransiently(void);
 
 /**
+ * @brief GetWakeupCount
+ * @note Only available with [11.0.0+].
+ * @param[out] out Output value.
+ */
+Result appletGetWakeupCount(u64 *out);
+
+/**
  * @brief Pushes a storage to the general channel. Used for sending requests to SystemApplet.
  * @note  This is not usable under an Application, however it is usable under a LibraryApplet.
  * @note  This uses \ref appletStorageClose automatically.
@@ -483,6 +503,17 @@ Result appletSetLcdBacklightOffEnabled(bool flag);
 Result appletIsInControllerFirmwareUpdateSection(bool *out);
 
 /**
+ * @brief SetVrPositionForDebug
+ * @note The cached value loaded from \ref setsysGetDebugModeFlag must be 1, otherwise an error is returned.
+ * @note Only available with [11.0.0+].
+ * @param[in] x X, must not be negative. x+width must be <=1280.
+ * @param[in] y Y, must not be negative. y+height must be <=720.
+ * @param[in] width Width, must be 1-1280.
+ * @param[in] height Height, must be 1-720.
+ */
+Result appletSetVrPositionForDebug(s32 x, s32 y, s32 width, s32 height);
+
+/**
  * @brief Gets the DefaultDisplayResolution.
  * @note Only available with [3.0.0+].
  * @param[out] width Output width.
@@ -542,6 +573,13 @@ Result appletSetCpuBoostMode(ApmCpuBoostMode mode);
 Result appletCancelCpuBoostMode(void);
 
 /**
+ * @brief GetBuiltInDisplayType
+ * @note Only available with [11.0.0+].
+ * @param[out] out Output value.
+ */
+Result appletGetBuiltInDisplayType(s32 *out);
+
+/**
  * @brief Perform SystemButtonPressing with the specified \ref AppletSystemButtonType. Internally this cmd checks a state field, verifies that the type is allowed, then runs the same func as \ref appletPerformSystemButtonPressing internally.
  * @note Only available with [6.0.0+].
  * @param[in] type \ref AppletSystemButtonType
@@ -561,6 +599,14 @@ Result appletSetPerformanceConfigurationChangedNotification(bool flag);
  * @param PerformanceConfiguration Output PerformanceConfiguration.
  */
 Result appletGetCurrentPerformanceConfiguration(u32 *PerformanceConfiguration);
+
+/**
+ * @brief Opens an \ref AppletGpuErrorHandler.
+ * @note The cached value loaded from \ref setsysGetDebugModeFlag must be 1, otherwise an error is returned.
+ * @note Only available with [11.0.0+].
+ * @param[out] g \ref AppletGpuErrorHandler
+ */
+Result appletOpenMyGpuErrorHandler(AppletGpuErrorHandler *g);
 
 /**
  * @brief Gets the OperationModeSystemInfo.
@@ -587,6 +633,66 @@ Result appletActivateMigrationService(void);
  * @note Only available with [10.0.0+].
  */
 Result appletDeactivateMigrationService(void);
+
+/**
+ * @brief DisableSleepTillShutdown
+ * @note Only available with [11.0.0+].
+ */
+Result appletDisableSleepTillShutdown(void);
+
+/**
+ * @brief SuppressDisablingSleepTemporarily
+ * @param[in] val Nanoseconds value.
+ * @note Only available with [11.0.0+].
+ */
+Result appletSuppressDisablingSleepTemporarily(u64 val);
+
+/**
+ * @brief SetRequestExitToLibraryAppletAtExecuteNextProgramEnabled
+ * @note Only available with [11.0.0+].
+ */
+Result appletSetRequestExitToLibraryAppletAtExecuteNextProgramEnabled(void);
+
+///@}
+
+///@name IGpuErrorHandler
+///@{
+
+/**
+ * @brief Close an \ref AppletGpuErrorHandler.
+ * @param g \ref AppletGpuErrorHandler
+ */
+void appletGpuErrorHandlerClose(AppletGpuErrorHandler *g);
+
+/**
+ * @brief Gets the size of the info available with \ref appletGpuErrorHandlerGetManualGpuErrorInfo.
+ * @param g \ref AppletGpuErrorHandler
+ * @param[out] out Output size.
+ */
+Result appletGpuErrorHandlerGetManualGpuErrorInfoSize(AppletGpuErrorHandler *g, u64 *out);
+
+/**
+ * @brief GetManualGpuErrorInfo
+ * @param g \ref AppletGpuErrorHandler
+ * @param[out] buffer Output buffer.
+ * @param[in] size Output buffer size, must be >= the output size from \ref appletGpuErrorHandlerGetManualGpuErrorInfoSize.
+ * @param[out] out Output value.
+ */
+Result appletGpuErrorHandlerGetManualGpuErrorInfo(AppletGpuErrorHandler *g, void* buffer, size_t size, u64 *out);
+
+/**
+ * @brief GetManualGpuErrorDetectionSystemEvent
+ * @param g \ref AppletGpuErrorHandler
+ * @note The Event must be closed by the user once finished with it.
+ * @param[out] out_event Output Event with autoclear=false.
+ */
+Result appletGpuErrorHandlerGetManualGpuErrorDetectionSystemEvent(AppletGpuErrorHandler *g, Event *out_event);
+
+/**
+ * @brief FinishManualGpuErrorHandling
+ * @param g \ref AppletGpuErrorHandler
+ */
+Result appletGpuErrorHandlerFinishManualGpuErrorHandling(AppletGpuErrorHandler *g);
 
 ///@}
 
@@ -621,7 +727,7 @@ Result appletLeaveFatalSection(void);
 Result appletSetScreenShotPermission(AppletScreenShotPermission permission);
 
 /**
- * @brief Sets whether ::AppletMessage_Restart is enabled.
+ * @brief Sets whether ::AppletMessage_Resume is enabled.
  * @param[in] flag Whether to enable the notification.
  */
 Result appletSetRestartMessageEnabled(bool flag);
@@ -803,7 +909,7 @@ Result appletSetWirelessPriorityMode(AppletWirelessPriorityMode mode);
 Result appletGetProgramTotalActiveTime(u64 *activeTime);
 
 /**
- * @brief Sets whether ::AppletMessage_AlbumImageTaken is enabled.
+ * @brief Sets whether ::AppletMessage_AlbumScreenShotTaken is enabled.
  * @note Only available with [7.0.0+].
  * @param[in] flag Whether to enable the notification.
  */
@@ -816,6 +922,13 @@ Result appletSetAlbumImageTakenNotificationEnabled(bool flag);
  * @param[in] size Buffer size, must be <=0x400.
  */
 Result appletSetApplicationAlbumUserData(const void* buffer, size_t size);
+
+/**
+ * @brief SaveCurrentScreenshot
+ * @note Only available with [11.0.0+].
+ * @param[in] option \ref AlbumReportOption
+ */
+Result appletSaveCurrentScreenshot(AlbumReportOption option);
 
 ///@}
 
@@ -1470,9 +1583,9 @@ Result appletInitializeApplicationCopyrightFrameBuffer(void);
  * @param[in] y Y coordinate. Must not be negative.
  * @param[in] width Image width. Must be >=1.
  * @param[in] height Image height. Must be >=1.
- * @param[in] mode WindowOriginMode. Should be at least 1.
+ * @param[in] mode \ref AppletWindowOriginMode
  */
-Result appletSetApplicationCopyrightImage(const void* buffer, size_t size, s32 x, s32 y, s32 width, s32 height, s32 mode);
+Result appletSetApplicationCopyrightImage(const void* buffer, size_t size, s32 x, s32 y, s32 width, s32 height, AppletWindowOriginMode mode);
 
 /**
  * @brief Sets the visibility for the image set by \ref appletSetApplicationCopyrightImage, in screenshots.
@@ -1540,6 +1653,13 @@ Result appletRestartProgram(const void* buffer, size_t size);
 Result appletGetPreviousProgramIndex(s32 *programIndex);
 
 /**
+ * @brief SetDelayTimeToAbortOnGpuError
+ * @note Only available with AppletType_*Application on [11.0.0+].
+ * @param[in] val Input nanoseconds value.
+ */
+Result appletSetDelayTimeToAbortOnGpuError(u64 val);
+
+/**
  * @brief Gets an Event which is signaled when a new storage is available with \ref appletTryPopFromFriendInvitationStorageChannel where previously no storage was available, this event is automatically cleared by the system once the last storage is popped.
  * @note This is used by \ref friendsGetFriendInvitationNotificationEvent.
  * @note Only available with AppletType_*Application on [9.0.0+].
@@ -1587,6 +1707,13 @@ Result appletGetHealthWarningDisappearedSystemEvent(Event *out_event);
  * @param[in] flag Whether HdcpAuthentication is activated.
  */
 Result appletSetHdcpAuthenticationActivated(bool flag);
+
+/**
+ * @brief GetLastApplicationExitReason
+ * @note Only available with AppletType_*Application on [11.0.0+].
+ * @param[out] out Output value.
+ */
+Result appletGetLastApplicationExitReason(s32 *out);
 
 /**
  * @brief CreateMovieMaker. Do not use this directly, use \ref grcCreateMovieMaker instead.
@@ -1650,6 +1777,13 @@ Result appletGetPopFromGeneralChannelEvent(Event *out_event);
 Result appletGetHomeButtonWriterLockAccessor(AppletLockAccessor *a);
 
 /**
+ * @brief IsSleepEnabled
+ * @note Only available with AppletType_SystemApplet on [11.0.0+].
+ * @param[out] out Output flag.
+ */
+Result appletIsSleepEnabled(bool *out);
+
+/**
  * @brief PopRequestLaunchApplicationForDebug
  * @note Only available with AppletType_SystemApplet on [6.0.0+].
  * @param[out] uids Output array of \ref AccountUid.
@@ -1672,6 +1806,13 @@ Result appletIsForceTerminateApplicationDisabledForDebug(bool *out);
  * @note This verifies that DebugMode is enabled, then uses a ns cmd. That cmd then loads the system-settings for these two ProgramIds (which normally only exist on devunits), and verifies that these programs are installed + launches them.
  */
 Result appletLaunchDevMenu(void);
+
+/**
+ * @brief SetLastApplicationExitReason
+ * @note Only available with AppletType_SystemApplet on [11.0.0+].
+ * @param[in] reason Reason
+ */
+Result appletSetLastApplicationExitReason(s32 reason);
 
 ///@}
 
@@ -2379,6 +2520,20 @@ Result appletGetHomeButtonDoubleClickEnabled(bool *out);
  * @param[out] out Output flag.
  */
 Result appletIsHomeButtonShortPressedBlocked(bool *out);
+
+/**
+ * @brief IsVrModeCurtainRequired
+ * @note Only available with AppletType_SystemApplet, AppletType_LibraryApplet, or AppletType_OverlayApplet, on [11.0.0+].
+ * @param[out] out Output flag.
+ */
+Result appletIsVrModeCurtainRequired(bool *out);
+
+/**
+ * @brief SetCpuBoostRequestPriority
+ * @note Only available with AppletType_SystemApplet, AppletType_LibraryApplet, or AppletType_OverlayApplet, on [11.0.0+].
+ * @param[in] priority Priority
+ */
+Result appletSetCpuBoostRequestPriority(s32 priority);
 
 ///@}
 
