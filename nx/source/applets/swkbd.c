@@ -284,7 +284,7 @@ Result swkbdShow(SwkbdConfig* c, char* out_string, size_t out_string_size) {
     if (strbuf) memset(strbuf, 0, strbuf_size+2);
     if (R_FAILED(rc)) return rc;
 
-    rc = appletCreateLibraryApplet(&holder, AppletId_swkbd, LibAppletMode_AllForeground);
+    rc = appletCreateLibraryApplet(&holder, AppletId_LibraryAppletSwkbd, LibAppletMode_AllForeground);
     if (R_FAILED(rc)) {
         free(strbuf);
         return rc;
@@ -502,7 +502,7 @@ static Result _swkbdInlineLaunch(SwkbdInline* s, SwkbdInitializeArg *initArg) {
     memcpy(&s->calcArg.initArg, initArg, sizeof(*initArg));
     s->calcArg.flags |= 0x1;
 
-    rc = appletCreateLibraryApplet(&s->holder, AppletId_swkbd, s->calcArg.initArg.mode!=SwkbdInlineMode_UserDisplay ? LibAppletMode_Background : LibAppletMode_BackgroundIndirect);
+    rc = appletCreateLibraryApplet(&s->holder, AppletId_LibraryAppletSwkbd, s->calcArg.initArg.mode!=SwkbdInlineMode_UserDisplay ? LibAppletMode_Background : LibAppletMode_BackgroundIndirect);
     if (R_FAILED(rc)) return rc;
 
     if (hosversionAtLeast(10,0,0))
@@ -587,6 +587,15 @@ s32 swkbdInlineGetMaxHeight(SwkbdInline* s) {
     height0+= extra_height;
     s32 height1 = flag ? 132 : 72;
     return s->state == SwkbdState_Unknown6 ? height1 : height0;
+}
+
+s32 swkbdInlineGetMiniaturizedHeight(SwkbdInline* s) {
+    bool flag=0;
+    if (s->calcArg.appearArg.type >= SwkbdType_ZhHans && s->calcArg.appearArg.type <= SwkbdType_Unknown9) flag = 1;
+    else if (!(s->calcArg.appearArg.dicFlag && s->wordInfoInitialized && s->dicCustomInitialized)) {
+        flag = !s->calcArg.appearArg.keySetDisableBitmask && (s->calcArg.appearArg.type != SwkbdType_NumPad && s->calcArg.appearArg.type != SwkbdType_QWERTY);
+    }
+    return flag ? 132 : 72;
 }
 
 s32 swkbdInlineGetTouchRectangles(SwkbdInline* s, SwkbdRect *keytop, SwkbdRect *footer) {
