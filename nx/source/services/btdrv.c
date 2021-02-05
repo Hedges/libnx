@@ -367,8 +367,8 @@ Result btdrvEnableRadio(bool flag) {
     return _btdrvCmdInBoolNoOut(flag, 34);
 }
 
-Result btdrvSetVisibility(bool flag0, bool flag1) {
-    return _btdrvCmdTwoInBoolsNoOut(flag0, flag1, 35);
+Result btdrvSetVisibility(bool inquiry_scan, bool page_scan) {
+    return _btdrvCmdTwoInBoolsNoOut(inquiry_scan, page_scan, 35);
 }
 
 Result btdrvEnableTbfcScan(bool flag) {
@@ -541,11 +541,11 @@ Result btdrvFinalizeBle(void) {
     return _btdrvCmdNoIO(49);
 }
 
-Result btdrvSetBleVisibility(bool flag0, bool flag1) {
+Result btdrvSetBleVisibility(bool discoverable, bool connectable) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return _btdrvCmdTwoInBoolsNoOut(flag0, flag1, 50);
+    return _btdrvCmdTwoInBoolsNoOut(discoverable, connectable, 50);
 }
 
 Result btdrvSetLeConnectionParameter(const BtdrvLeConnectionParams *param) {
