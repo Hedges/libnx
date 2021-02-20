@@ -336,18 +336,18 @@ Result btdrvGetHidEventInfo(void* buffer, size_t size, BtdrvHidEventType *type) 
     return rc;
 }
 
-Result btdrvSetTsi(BtdrvAddress addr, u8 unk) {
-    return _btmCmdInAddrU8NoOut(addr, unk, 28);
+Result btdrvSetTsi(BtdrvAddress addr, u8 tsi) {
+    return _btmCmdInAddrU8NoOut(addr, tsi, 28);
 }
 
 Result btdrvEnableBurstMode(BtdrvAddress addr, bool flag) {
     return _btmCmdInAddrU8NoOut(addr, flag!=0, 29);
 }
 
-Result btdrvSetZeroRetransmission(BtdrvAddress addr, u8 *buf, u8 count) {
+Result btdrvSetZeroRetransmission(BtdrvAddress addr, u8 *report_ids, u8 count) {
     return serviceDispatchIn(&g_btdrvSrv, 30, addr,
         .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
-        .buffers = { { buf, count } },
+        .buffers = { { report_ids, count } },
     );
 }
 
@@ -367,8 +367,8 @@ Result btdrvEnableRadio(bool flag) {
     return _btdrvCmdInBoolNoOut(flag, 34);
 }
 
-Result btdrvSetVisibility(bool flag0, bool flag1) {
-    return _btdrvCmdTwoInBoolsNoOut(flag0, flag1, 35);
+Result btdrvSetVisibility(bool inquiry_scan, bool page_scan) {
+    return _btdrvCmdTwoInBoolsNoOut(inquiry_scan, page_scan, 35);
 }
 
 Result btdrvEnableTbfcScan(bool flag) {
@@ -416,31 +416,31 @@ Result btdrvGetHidReportEventInfo(void* buffer, size_t size, BtdrvHidEventType *
         if (g_btdrvCircularBuffer==NULL) return MAKERESULT(Module_Libnx, LibnxError_NotInitialized);
         for (; (data_ptr = btdrvCircularBufferRead(g_btdrvCircularBuffer)); btdrvCircularBufferFree(g_btdrvCircularBuffer)) {
             *type = data_ptr->hdr.type;
-            if (*type == BtdrvHidEventType_Unknown4) {
+            if (*type == BtdrvHidEventType_Data) {
                 if (armTicksToNs(armGetSystemTick() - data_ptr->hdr.tick) >= 100000001) continue;
             }
             break;
         }
         if (data_ptr == NULL) {
-            *type = BtdrvHidEventType_Unknown4;
+            *type = BtdrvHidEventType_Data;
             return 0;
         }
-        if (*type == BtdrvHidEventType_Unknown9) {
-            if (hosversionBefore(9,0,0)) memcpy(info->type9.hid_data.rawdata, data_ptr->data.type9.hid_data.rawdata, sizeof(info->type9.hid_data.rawdata));
-            else memcpy(info->type9.hid_report.rawdata, data_ptr->data.type9.hid_report.rawdata, sizeof(info->type9.hid_report.rawdata));
+        if (*type == BtdrvHidEventType_GetReport) {
+            if (hosversionBefore(9,0,0)) memcpy(info->get_report.hid_data.rawdata, data_ptr->data.get_report.hid_data.rawdata, sizeof(info->get_report.hid_data.rawdata));
+            else memcpy(info->get_report.hid_report.rawdata, data_ptr->data.get_report.hid_report.rawdata, sizeof(info->get_report.hid_report.rawdata));
         }
-        else if (*type == BtdrvHidEventType_Unknown8) memcpy(info->type8.data, data_ptr->data.type8.data, sizeof(info->type8.data));
-        else if (*type == BtdrvHidEventType_Unknown4) {
-            u16 tmpsize = hosversionBefore(9,0,0) ? data_ptr->data.type4.v1.size : data_ptr->data.type4.v9.size;
+        else if (*type == BtdrvHidEventType_SetReport) memcpy(info->set_report.data, data_ptr->data.set_report.data, sizeof(info->set_report.data));
+        else if (*type == BtdrvHidEventType_Data) {
+            u16 tmpsize = hosversionBefore(9,0,0) ? data_ptr->data.data_report.v1.size : data_ptr->data.data_report.v9.size;
             if (size < 0xE) return MAKERESULT(Module_Libnx, LibnxError_BadInput);
             if (tmpsize > size-0xE) tmpsize = size-0xE;
-            info->type4.unk_x0 = 0;
-            info->type4.size = tmpsize;
-            if (hosversionBefore(9,0,0)) memcpy(info->type4.data, data_ptr->data.type4.v1.data, tmpsize);
-            else memcpy(info->type4.data, data_ptr->data.type4.v9.data, tmpsize);
+            info->data_report.unk_x0 = 0;
+            info->data_report.size = tmpsize;
+            if (hosversionBefore(9,0,0)) memcpy(info->data_report.data, data_ptr->data.data_report.v1.data, tmpsize);
+            else memcpy(info->data_report.data, data_ptr->data.data_report.v9.data, tmpsize);
 
-            if (hosversionBefore(9,0,0)) memcpy(&info->type4.addr, &data_ptr->data.type4.v1.addr, sizeof(BtdrvAddress));
-            else memcpy(&info->type4.addr, &data_ptr->data.type4.v9.addr, sizeof(BtdrvAddress));
+            if (hosversionBefore(9,0,0)) memcpy(&info->data_report.addr, &data_ptr->data.data_report.v1.addr, sizeof(BtdrvAddress));
+            else memcpy(&info->data_report.addr, &data_ptr->data.data_report.v9.addr, sizeof(BtdrvAddress));
         }
         else return MAKERESULT(Module_Libnx, LibnxError_ShouldNotHappen); // sdknso would Abort here.
         btdrvCircularBufferFree(g_btdrvCircularBuffer);
@@ -541,11 +541,11 @@ Result btdrvFinalizeBle(void) {
     return _btdrvCmdNoIO(49);
 }
 
-Result btdrvSetBleVisibility(bool flag0, bool flag1) {
+Result btdrvSetBleVisibility(bool discoverable, bool connectable) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return _btdrvCmdTwoInBoolsNoOut(flag0, flag1, 50);
+    return _btdrvCmdTwoInBoolsNoOut(discoverable, connectable, 50);
 }
 
 Result btdrvSetLeConnectionParameter(const BtdrvLeConnectionParams *param) {
@@ -865,7 +865,7 @@ Result btdrvGetBleManagedEventInfo(void* buffer, size_t size, u32 *type) {
     return _btdrvCmdOutU32OutBuf(buffer, size, type, cmd_id);
 }
 
-Result btdrvGetGattFirstCharacteristic(u32 unk, const BtdrvGattId *id, bool flag, const BtdrvGattAttributeUuid *uuid, u8 *unk_out, BtdrvGattId *id_out) {
+Result btdrvGetGattFirstCharacteristic(u32 unk, const BtdrvGattId *id, bool flag, const BtdrvGattAttributeUuid *uuid, u8 *out_property, BtdrvGattId *out_char_id) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 79 : 80;
@@ -879,20 +879,20 @@ Result btdrvGetGattFirstCharacteristic(u32 unk, const BtdrvGattId *id, bool flag
     } in = { flag!=0, {0}, unk, *id, *uuid };
 
     struct {
-        u8 unk;
+        u8 property;
         u8 pad[3];
         BtdrvGattId id;
     } out;
 
     Result rc = serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, out);
     if (R_SUCCEEDED(rc)) {
-        if (unk_out) *unk_out = out.unk;
-        if (id_out) *id_out = out.id;
+        if (out_property) *out_property = out.property;
+        if (out_char_id) *out_char_id = out.id;
     }
     return rc;
 }
 
-Result btdrvGetGattNextCharacteristic(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattAttributeUuid *uuid, u8 *unk_out, BtdrvGattId *id_out) {
+Result btdrvGetGattNextCharacteristic(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattAttributeUuid *uuid, u8 *out_property, BtdrvGattId *out_char_id) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 80 : 81;
@@ -907,20 +907,20 @@ Result btdrvGetGattNextCharacteristic(u32 unk, const BtdrvGattId *id0, bool flag
     } in = { flag!=0, {0}, unk, *id0, *id1, *uuid };
 
     struct {
-        u8 unk;
+        u8 property;
         u8 pad[3];
         BtdrvGattId id;
     } out;
 
     Result rc = serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, out);
     if (R_SUCCEEDED(rc)) {
-        if (unk_out) *unk_out = out.unk;
-        if (id_out) *id_out = out.id;
+        if (out_property) *out_property = out.property;
+        if (out_char_id) *out_char_id = out.id;
     }
     return rc;
 }
 
-Result btdrvGetGattFirstDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattAttributeUuid *uuid, BtdrvGattId *id_out) {
+Result btdrvGetGattFirstDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattAttributeUuid *uuid, BtdrvGattId *out_desc_id) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 81 : 82;
@@ -934,10 +934,10 @@ Result btdrvGetGattFirstDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, c
         BtdrvGattAttributeUuid uuid;
     } in = { flag!=0, {0}, unk, *id0, *id1, *uuid };
 
-    return serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, *id_out);
+    return serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, *out_desc_id);
 }
 
-Result btdrvGetGattNextDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattId *id2, const BtdrvGattAttributeUuid *uuid, BtdrvGattId *id_out) {
+Result btdrvGetGattNextDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, const BtdrvGattId *id1, const BtdrvGattId *id2, const BtdrvGattAttributeUuid *uuid, BtdrvGattId *out_desc_id) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 82 : 83;
@@ -952,7 +952,7 @@ Result btdrvGetGattNextDescriptor(u32 unk, const BtdrvGattId *id0, bool flag, co
         BtdrvGattAttributeUuid uuid;
     } in = { flag!=0, {0}, unk, *id0, *id1, *id2, *uuid };
 
-    return serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, *id_out);
+    return serviceDispatchInOut(&g_btdrvSrv, cmd_id, in, *out_desc_id);
 }
 
 Result btdrvRegisterGattManagedDataPath(const BtdrvGattAttributeUuid *uuid) {

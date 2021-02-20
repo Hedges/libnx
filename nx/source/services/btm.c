@@ -141,8 +141,11 @@ static Result _btmRegisterBleGattDataPath(const BtmBleDataPath *path, u32 cmd_id
     return serviceDispatchIn(&g_btmSrv, cmd_id, *path);
 }
 
-Result btmGetState(u32 *out) {
-    return _btmCmdNoInOutU32(out, 0);
+Result btmGetState(BtmState *out) {
+    u32 tmp=0;
+    Result rc = _btmCmdNoInOutU32(&tmp, 0);
+    if (R_SUCCEEDED(rc) && out) *out = tmp;
+    return rc;
 }
 
 Result btmGetHostDeviceProperty(BtmHostDeviceProperty *out) {
@@ -165,14 +168,14 @@ Result btmSetSlotMode(const BtmDeviceSlotModeList *list) {
     return _btmCmdInBufPtrFixed(list, sizeof(*list), 5);
 }
 
-Result btmSetBluetoothMode(u32 mode) {
+Result btmSetBluetoothMode(BtmBluetoothMode mode) {
     if (hosversionAtLeast(9,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     return _btmCmdInU32NoOut(mode, 6);
 }
 
-Result btmSetWlanMode(u32 mode) {
+Result btmSetWlanMode(BtmWlanMode mode) {
     return _btmCmdInU32NoOut(mode, 7);
 }
 
@@ -270,18 +273,18 @@ Result btmAcquireBleScanEvent(Event* out_event) {
     return _btmCmdGetEventOutFlag(out_event, true, 23);
 }
 
-Result btmGetBleScanParameterGeneral(u16 unk, BtdrvBleAdvertisePacketParameter *out) {
+Result btmGetBleScanParameterGeneral(u16 parameter_id, BtdrvBleAdvertisePacketParameter *out) {
     if (hosversionBefore(5,1,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return serviceDispatchInOut(&g_btmSrv, 24, unk, *out);
+    return serviceDispatchInOut(&g_btmSrv, 24, parameter_id, *out);
 }
 
-Result btmGetBleScanParameterSmartDevice(u16 unk, BtdrvGattAttributeUuid *out) {
+Result btmGetBleScanParameterSmartDevice(u16 parameter_id, BtdrvGattAttributeUuid *out) {
     if (hosversionBefore(5,1,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
-    return serviceDispatchInOut(&g_btmSrv, 25, unk, *out);
+    return serviceDispatchInOut(&g_btmSrv, 25, parameter_id, *out);
 }
 
 Result btmStartBleScanForGeneral(BtdrvBleAdvertisePacketParameter param) {
@@ -473,24 +476,24 @@ Result btmGetGattService(u32 connection_handle, const BtdrvGattAttributeUuid *uu
     return rc;
 }
 
-Result btmGetGattIncludedServices(u32 connection_handle, u16 handle, BtmGattService *services, u8 count, u8 *out) {
+Result btmGetGattIncludedServices(u32 connection_handle, u16 service_handle, BtmGattService *services, u8 count, u8 *out) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 31 : 48;
 
-    return _btmGetGattServiceData(connection_handle, handle, services, sizeof(BtmGattService), count, out, cmd_id);
+    return _btmGetGattServiceData(connection_handle, service_handle, services, sizeof(BtmGattService), count, out, cmd_id);
 }
 
-Result btmGetBelongingService(u32 connection_handle, u16 handle, BtmGattService *service, bool *flag) {
+Result btmGetBelongingService(u32 connection_handle, u16 attribute_handle, BtmGattService *service, bool *flag) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 32 : 49;
 
     const struct {
-        u16 handle;
+        u16 attribute_handle;
         u16 pad;
         u32 connection_handle;
-    } in = { handle, 0, connection_handle };
+    } in = { attribute_handle, 0, connection_handle };
 
     u8 tmp=0;
     Result rc = serviceDispatchInOut(&g_btmSrv, cmd_id, in, tmp,
@@ -501,20 +504,20 @@ Result btmGetBelongingService(u32 connection_handle, u16 handle, BtmGattService 
     return rc;
 }
 
-Result btmGetGattCharacteristics(u32 connection_handle, u16 handle, BtmGattCharacteristic *characteristics, u8 count, u8 *total_out) {
+Result btmGetGattCharacteristics(u32 connection_handle, u16 service_handle, BtmGattCharacteristic *characteristics, u8 count, u8 *total_out) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 33 : 50;
 
-    return _btmGetGattServiceData(connection_handle, handle, characteristics, sizeof(BtmGattCharacteristic), count, total_out, cmd_id);
+    return _btmGetGattServiceData(connection_handle, service_handle, characteristics, sizeof(BtmGattCharacteristic), count, total_out, cmd_id);
 }
 
-Result btmGetGattDescriptors(u32 connection_handle, u16 handle, BtmGattDescriptor *descriptors, u8 count, u8 *total_out) {
+Result btmGetGattDescriptors(u32 connection_handle, u16 char_handle, BtmGattDescriptor *descriptors, u8 count, u8 *total_out) {
     if (hosversionBefore(5,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
     u32 cmd_id = hosversionBefore(5,1,0) ? 34 : 51;
 
-    return _btmGetGattServiceData(connection_handle, handle, descriptors, sizeof(BtmGattDescriptor), count, total_out, cmd_id);
+    return _btmGetGattServiceData(connection_handle, char_handle, descriptors, sizeof(BtmGattDescriptor), count, total_out, cmd_id);
 }
 
 Result btmAcquireBleMtuConfigEvent(Event* out_event) {
