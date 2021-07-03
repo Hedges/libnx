@@ -42,6 +42,7 @@ extern "C" {
 #include "switch/sf/cmif.h"
 #include "switch/sf/service.h"
 #include "switch/sf/sessionmgr.h"
+#include "switch/sf/tipc.h"
 
 #include "switch/services/sm.h"
 #include "switch/services/smm.h"
@@ -52,8 +53,10 @@ extern "C" {
 #include "switch/services/apm.h"
 #include "switch/services/applet.h"
 #include "switch/services/async.h"
+#include "switch/services/audctl.h"
 #include "switch/services/audin.h"
 #include "switch/services/audout.h"
+#include "switch/services/audrec.h"
 #include "switch/services/audren.h"
 #include "switch/services/auddev.h"
 #include "switch/services/hwopus.h"
@@ -71,6 +74,7 @@ extern "C" {
 #include "switch/services/spsm.h"
 //#include "switch/services/bsd.h" Use <sys/socket.h> instead
 //#include "switch/services/sfdnsres.h" Use <netdb.h> instead
+//#include "switch/services/htcs.h"
 #include "switch/services/fatal.h"
 #include "switch/services/time.h"
 #include "switch/services/usb.h"
