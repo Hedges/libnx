@@ -122,6 +122,18 @@ typedef struct {
     u8 unk_x3b[0x25];         ///< Unknown. Usually zeros?
 } FsSaveDataInfo;
 
+/// SaveDataFilter
+typedef struct {
+    bool filter_by_application_id;       ///< Filter by \ref FsSaveDataAttribute::application_id
+    bool filter_by_save_data_type;       ///< Filter by \ref FsSaveDataAttribute::save_data_type
+    bool filter_by_user_id;              ///< Filter by \ref FsSaveDataAttribute::uid
+    bool filter_by_system_save_data_id;  ///< Filter by \ref FsSaveDataAttribute::system_save_data_id
+    bool filter_by_index;                ///< Filter by \ref FsSaveDataAttribute::save_data_index
+    u8 save_data_rank;                   ///< \ref FsSaveDataRank
+    u8 padding[0x2];                     ///< Padding
+    FsSaveDataAttribute attr;            ///< \ref FsSaveDataAttribute
+} FsSaveDataFilter;
+
 typedef struct {
     u64 created;  ///< POSIX timestamp.
     u64 modified; ///< POSIX timestamp.
@@ -172,9 +184,10 @@ typedef enum {
 } FsWriteOption;
 
 typedef enum {
-    FsContentStorageId_System = 0,
-    FsContentStorageId_User   = 1,
-    FsContentStorageId_SdCard = 2,
+    FsContentStorageId_System  = 0, ///< System
+    FsContentStorageId_User    = 1, ///< User
+    FsContentStorageId_SdCard  = 2, ///< SdCard
+    FsContentStorageId_System0 = 3, ///< [16.0.0+] System0
 } FsContentStorageId;
 
 typedef enum {
@@ -286,6 +299,8 @@ typedef enum {
     FsBisPartitionId_SystemProperEncryption          = 32,
     FsBisPartitionId_SystemProperPartition           = 33,
     FsBisPartitionId_SignedSystemPartitionOnSafeMode = 34,
+    FsBisPartitionId_DeviceTreeBlob                  = 35,
+    FsBisPartitionId_System0                         = 36,
 } FsBisPartitionId;
 
 /// FileSystemType
@@ -313,6 +328,12 @@ typedef enum {
     FsPriority_Background = 3,
 } FsPriority;
 
+/// FsContentAttributes
+typedef enum {
+    FsContentAttributes_None = 0x0,
+    FsContentAttributes_All  = 0xF,
+} FsContentAttributes;
+
 /// For use with fsOpenHostFileSystemWithOption
 typedef enum {
     FsMountHostOptionFlag_None                = 0,      ///< Host filesystem will be case insensitive.
@@ -335,7 +356,7 @@ void fsSetPriority(FsPriority prio);
 Result fsOpenFileSystem(FsFileSystem* out, FsFileSystemType fsType, const char* contentPath); ///< same as calling fsOpenFileSystemWithId with 0 as id
 Result fsOpenDataFileSystemByCurrentProcess(FsFileSystem *out);
 Result fsOpenFileSystemWithPatch(FsFileSystem* out, u64 id, FsFileSystemType fsType); ///< [2.0.0+], like OpenFileSystemWithId but without content path.
-Result fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath); ///< works on all firmwares, id is ignored on [1.0.0]
+Result fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath, FsContentAttributes attr); ///< works on all firmwares, id is ignored on [1.0.0], attr is ignored before [16.0.0]
 Result fsOpenDataFileSystemByProgramId(FsFileSystem *out, u64 program_id); ///< [3.0.0+]
 Result fsOpenBisFileSystem(FsFileSystem* out, FsBisPartitionId partitionId, const char* string);
 Result fsOpenBisStorage(FsStorage* out, FsBisPartitionId partitionId);
@@ -368,6 +389,8 @@ Result fsWriteSaveDataFileSystemExtraData(const void* buf, size_t len, FsSaveDat
 
 Result fsOpenSaveDataInfoReader(FsSaveDataInfoReader* out, FsSaveDataSpaceId save_data_space_id);
 
+Result fsOpenSaveDataInfoReaderWithFilter(FsSaveDataInfoReader* out, FsSaveDataSpaceId save_data_space_id, const FsSaveDataFilter *save_data_filter); ///< [6.0.0+]
+
 Result fsOpenImageDirectoryFileSystem(FsFileSystem* out, FsImageDirectoryId image_directory_id);
 Result fsOpenContentStorageFileSystem(FsFileSystem* out, FsContentStorageId content_storage_id);
 Result fsOpenCustomStorageFileSystem(FsFileSystem* out, FsCustomStorageId custom_storage_id); ///< [7.0.0+]
@@ -382,11 +405,11 @@ Result fsOpenSdCardDetectionEventNotifier(FsEventNotifier* out);
 
 Result fsIsSignedSystemPartitionOnSdCardValid(bool *out);
 
-/// Retrieves the rights id corresponding to the content path. Only available on [2.0.0+].
+/// Retrieves the rights id corresponding to the content path. Only available on [2.0.0-15.0.1].
 Result fsGetRightsIdByPath(const char* path, FsRightsId* out_rights_id);
 
-/// Retrieves the rights id and key generation corresponding to the content path. Only available on [3.0.0+].
-Result fsGetRightsIdAndKeyGenerationByPath(const char* path, u8* out_key_generation, FsRightsId* out_rights_id);
+/// Retrieves the rights id and key generation corresponding to the content path. Only available on [3.0.0+], attr is ignored before [16.0.0].
+Result fsGetRightsIdAndKeyGenerationByPath(const char* path, FsContentAttributes attr, u8* out_key_generation, FsRightsId* out_rights_id);
 
 Result fsDisableAutoSaveDataCreation(void);
 
@@ -396,6 +419,9 @@ Result fsOutputAccessLogToSdCard(const char *log, size_t size);
 
 /// Only available on [7.0.0+].
 Result fsGetProgramIndexForAccessLog(u32 *out_program_index, u32 *out_program_count);
+
+// Wrapper(s) for fsCreateSaveDataFileSystem.
+Result fsCreate_TemporaryStorage(u64 application_id, u64 owner_id, s64 size, u32 flags);
 
 // Wrapper(s) for fsCreateSaveDataFileSystemBySystemSaveDataId.
 Result fsCreate_SystemSaveDataWithOwner(FsSaveDataSpaceId save_data_space_id, u64 system_save_data_id, AccountUid uid, u64 owner_id, s64 size, s64 journal_size, u32 flags);

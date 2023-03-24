@@ -133,7 +133,7 @@ static Result _fsCmdNoInOutBool(Service* srv, bool *out, u32 cmd_id) {
 //-----------------------------------------------------------------------------
 
 Result fsOpenFileSystem(FsFileSystem* out, FsFileSystemType fsType, const char* contentPath) {
-    return fsOpenFileSystemWithId(out, 0, fsType, contentPath);
+    return fsOpenFileSystemWithId(out, 0, fsType, contentPath, FsContentAttributes_None);
 }
 
 static Result _fsOpenFileSystem(FsFileSystem* out, FsFileSystemType fsType, const char* contentPath) {
@@ -165,18 +165,33 @@ Result fsOpenFileSystemWithPatch(FsFileSystem* out, u64 id, FsFileSystemType fsT
     );
 }
 
-static Result _fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath) {
-    const struct {
-        u32 fsType;
-        u64 id;
-    } in = { fsType, id };
+static Result _fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath, FsContentAttributes attr) {
+    if (hosversionAtLeast(16,0,0)) {
+        const struct {
+            u8 attr;
+            u32 fsType;
+            u64 id;
+        } in = { attr, fsType, id };
 
-    return _fsObjectDispatchIn(&g_fsSrv, 8, in,
-        .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
-        .buffers = { { contentPath, FS_MAX_PATH } },
-        .out_num_objects = 1,
-        .out_objects = &out->s,
-    );
+        return _fsObjectDispatchIn(&g_fsSrv, 10, in,
+            .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
+            .buffers = { { contentPath, FS_MAX_PATH } },
+            .out_num_objects = 1,
+            .out_objects = &out->s,
+        );
+    } else {
+        const struct {
+            u32 fsType;
+            u64 id;
+        } in = { fsType, id };
+
+        return _fsObjectDispatchIn(&g_fsSrv, 8, in,
+            .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
+            .buffers = { { contentPath, FS_MAX_PATH } },
+            .out_num_objects = 1,
+            .out_objects = &out->s,
+        );
+    }
 }
 
 Result fsOpenDataFileSystemByProgramId(FsFileSystem *out, u64 program_id) {
@@ -189,12 +204,12 @@ Result fsOpenDataFileSystemByProgramId(FsFileSystem *out, u64 program_id) {
     );
 }
 
-Result fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath) {
+Result fsOpenFileSystemWithId(FsFileSystem* out, u64 id, FsFileSystemType fsType, const char* contentPath, FsContentAttributes attr) {
     char sendStr[FS_MAX_PATH] = {0};
     strncpy(sendStr, contentPath, sizeof(sendStr)-1);
 
     if (hosversionAtLeast(2,0,0))
-        return _fsOpenFileSystemWithId(out, id, fsType, sendStr);
+        return _fsOpenFileSystemWithId(out, id, fsType, sendStr, attr);
     else
         return _fsOpenFileSystem(out, fsType, sendStr);
 }
@@ -434,6 +449,19 @@ Result fsOpenSaveDataInfoReader(FsSaveDataInfoReader* out, FsSaveDataSpaceId sav
     }
 }
 
+Result fsOpenSaveDataInfoReaderWithFilter(FsSaveDataInfoReader* out, FsSaveDataSpaceId save_data_space_id, const FsSaveDataFilter *save_data_filter) {
+    const struct {
+        u8 save_data_space_id;
+        u8 pad[7];
+        FsSaveDataFilter save_data_filter;
+    } in = { (u8)save_data_space_id, {0}, *save_data_filter };
+
+    return _fsObjectDispatchIn(&g_fsSrv, 68, in,
+        .out_num_objects = 1,
+        .out_objects = &out->s,
+    );
+}
+
 Result fsOpenImageDirectoryFileSystem(FsFileSystem* out, FsImageDirectoryId image_directory_id) {
     u32 tmp=image_directory_id;
     return _fsObjectDispatchIn(&g_fsSrv, 100, tmp,
@@ -507,7 +535,7 @@ Result fsIsSignedSystemPartitionOnSdCardValid(bool *out) {
 }
 
 Result fsGetRightsIdByPath(const char* path, FsRightsId* out_rights_id) {
-    if (hosversionBefore(2,0,0))
+    if (!hosversionBetween(2, 16))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     char send_path[FS_MAX_PATH] = {0};
@@ -519,12 +547,14 @@ Result fsGetRightsIdByPath(const char* path, FsRightsId* out_rights_id) {
     );
 }
 
-Result fsGetRightsIdAndKeyGenerationByPath(const char* path, u8* out_key_generation, FsRightsId* out_rights_id) {
+Result fsGetRightsIdAndKeyGenerationByPath(const char* path, FsContentAttributes attr, u8* out_key_generation, FsRightsId* out_rights_id) {
     if (hosversionBefore(3,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     char send_path[FS_MAX_PATH] = {0};
     strncpy(send_path, path, FS_MAX_PATH-1);
+
+    const u8 in = attr;
 
     struct {
         u8 key_generation;
@@ -532,10 +562,18 @@ Result fsGetRightsIdAndKeyGenerationByPath(const char* path, u8* out_key_generat
         FsRightsId rights_id;
     } out;
 
-    Result rc = _fsObjectDispatchOut(&g_fsSrv, 610, out,
-        .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
-        .buffers = { { send_path, sizeof(send_path) } },
-    );
+    Result rc;
+    if (hosversionAtLeast(16,0,0)) {
+        rc = _fsObjectDispatchInOut(&g_fsSrv, 610, in, out,
+            .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
+            .buffers = { { send_path, sizeof(send_path) } },
+        );
+    } else {
+        rc = _fsObjectDispatchOut(&g_fsSrv, 610, out,
+            .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
+            .buffers = { { send_path, sizeof(send_path) } },
+        );
+    }
 
     if (R_SUCCEEDED(rc)) {
         if (out_key_generation) *out_key_generation = out.key_generation;
@@ -579,6 +617,25 @@ Result fsGetProgramIndexForAccessLog(u32 *out_program_index, u32 *out_program_co
         if (out_program_count) *out_program_count = out.count;
     }
     return rc;
+}
+
+// Wrapper(s) for fsCreateSaveDataFileSystem.
+Result fsCreate_TemporaryStorage(u64 application_id, u64 owner_id, s64 size, u32 flags) {
+    FsSaveDataAttribute attr = {
+        .application_id = application_id,
+        .save_data_type = FsSaveDataType_Temporary,
+    };
+    FsSaveDataCreationInfo create = {
+        .save_data_size = size,
+        .journal_size = 0,
+        .available_size = 0x4000,
+        .owner_id = owner_id,
+        .flags = flags,
+        .save_data_space_id = FsSaveDataSpaceId_Temporary,
+    };
+    FsSaveDataMetaInfo meta={};
+
+    return fsCreateSaveDataFileSystem(&attr, &create, &meta);
 }
 
 // Wrapper(s) for fsCreateSaveDataFileSystemBySystemSaveDataId.
@@ -655,7 +712,7 @@ Result fsOpen_TemporaryStorage(FsFileSystem* out) {
     memset(&attr, 0, sizeof(attr));
     attr.save_data_type = FsSaveDataType_Temporary;
 
-    return fsOpenSaveDataFileSystem(out, FsSaveDataType_Temporary, &attr);
+    return fsOpenSaveDataFileSystem(out, FsSaveDataSpaceId_Temporary, &attr);
 }
 
 Result fsOpen_CacheStorage(FsFileSystem* out, u64 application_id, u16 save_data_index) {

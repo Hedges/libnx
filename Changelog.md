@@ -1,5 +1,72 @@
 # Changelog
 
+## Version 4.2.2
+
+#### system
+* svc: Added svcMapInsecureMemory, svcUnmapInsecureMemory [15.0.0+].
+* svc: Renamed perm parameter of svcMapDeviceAddressSpaceByForce and svcMapDeviceAddressSpaceAligned to option [15.0.0+].
+* svc: Corrected svcMapIoRegion, svcUnmapIoRegion.
+* env: Added HBABI support for hinting SVCs in the extended range 0x80..0xBF.
+* cache: Added instruction barrier to armICacheInvalidate.
+
+#### graphics
+* Added nvGpuGetTimestamp, nvioctlNvhostCtrlGpu_GetGpuTime.
+
+#### applets
+* swkbd: Corrected several typos and incorrect floating point values.
+
+#### network
+* socket: Added socketNifmRequestRegisterSocketDescriptor, socketNifmRequestUnregisterSocketDescriptor.
+* nifm: nifmRequestSetKeptInSleep, nifmRequestRegisterSocketDescriptor, nifmRequestUnregisterSocketDescriptor, nifmSetWowlDelayedWakeTime.
+
+#### other services
+* set:sys: setsysNeedsToUpdateHeadphoneVolume removed in [15.0.0].
+* pdm:qry: pdmqryQueryRecentlyPlayedApplication, pdmqryGetRecentlyPlayedApplicationUpdateEvent removed in [15.0.0].
+
+Several issues were fixed, and usability and stability were improved.
+
+## Version 4.2.1
+
+#### system
+* cache: Adjusted cache maintenance ABI for [14.0.0+].
+* svc: Added InfoType_IsSvcPermitted [14.0.0+].
+* svc: Removed svcCallSecureMonitor's non-existent return type.
+* svc: Fixed definition of MemoryInfo struct.
+* ldscript: Generated ELFs now start with the `.text` section (required by GDB).
+
+#### filesystem
+* Added fsOpenSaveDataInfoReaderWithFilter.
+* Added fsCreate_TemporaryStorage.
+* Fixed bug in fsOpen_TemporaryStorage.
+
+#### graphics
+* Added nvIoctl3.
+* Adjusted hos version requirements in nvIoctl2 [3.0.0+].
+* Adjusted list of IOCTLs that use the cloned NV service session.
+* console: Added support for SGR 38/48 escape sequences.
+* console: Bold/Faint attributes no longer applied to the background.
+
+#### input
+* hid: Added hidGetNpadLagerType, hidGetNpadStatesLager.
+* hid: Added HidNpadLagerType enum.
+* hid: Added HidNpadLagerState struct.
+* hid: Updated HidNpadStyleTag, HidNpadButton, HidDeviceTypeBits, HidDeviceType, HidAppletFooterUiType enums.
+* hid: Updated HidNpadInternalState struct.
+* hidsys: Added hidsysAcquireUniquePadConnectionEventHandle, hidsysGetUniquePadBluetoothAddress, hidsysDisconnectUniquePad, hidsysGetUniquePadType, hidsysGetUniquePadInterface, hidsysGetUniquePadControllerNumber.
+* hidsys: Added HidsysUniquePadType enum.
+
+#### other
+* Added `BITL()` macro (unsigned long, i.e. 64-bit unsigned integer).
+* bpc: Adjusted for removed commands in [14.0.0+].
+* bpc: Added bpcGetPowerButton [6.0.0+].
+* btdrv: Adjusted for removed commands in [14.0.0+].
+* btm: Corrected inverted hos version check affecting several commands.
+* nfc: Added nfcSendCommandByPassThrough, nfcKeepPassThroughSession, nfcReleasePassThroughSession.
+* pm: Added support for [14.0.0+].
+* ts: Adjusted for removed commands in [14.0.0+].
+
+Several issues were fixed, and usability and stability were improved.
+
 ## Version 4.2.0
 
 #### system

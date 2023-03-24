@@ -40,6 +40,8 @@ typedef enum {
     MemType_KernelStack=0x13,         ///< Mapped in kernel during \ref svcCreateThread.
     MemType_CodeReadOnly=0x14,        ///< Mapped in kernel during \ref svcControlCodeMemory.
     MemType_CodeWritable=0x15,        ///< Mapped in kernel during \ref svcControlCodeMemory.
+    MemType_Coverage=0x16,            ///< Not available.
+    MemType_Insecure=0x17,            ///< Mapped in kernel during \ref svcMapInsecureMemory.
 } MemoryType;
 
 /// Memory state bitmasks.
@@ -91,8 +93,8 @@ typedef struct {
     u32 type;            ///< Memory type (see lower 8 bits of \ref MemoryState).
     u32 attr;            ///< Memory attributes (see \ref MemoryAttribute).
     u32 perm;            ///< Memory permissions (see \ref Permission).
-    u32 device_refcount; ///< Device reference count.
     u32 ipc_refcount;    ///< IPC reference count.
+    u32 device_refcount; ///< Device reference count.
     u32 padding;         ///< Padding.
 } MemoryInfo;
 
@@ -205,6 +207,7 @@ typedef enum {
     InfoType_IsApplication                  = 23, ///< [9.0.0+] Whether the specified process is an Application.
     InfoType_FreeThreadCount                = 24, ///< [11.0.0+] The number of free threads available to the process's resource limit.
     InfoType_ThreadTickCount                = 25, ///< [13.0.0+] Number of ticks spent on thread.
+    InfoType_IsSvcPermitted                 = 26, ///< [14.0.0+] Does process have access to SVC (only usable with \ref svcSynchronizePreemptionState at present).
 
     InfoType_ThreadTickCountDeprecated      = 0xF0000002, ///< [1.0.0-12.1.0] Number of ticks spent on thread.
 } InfoType;
@@ -1161,7 +1164,7 @@ Result svcDetachDeviceAddressSpace(u64 device, Handle handle);
  * @note Syscall number 0x59.
  * @warning This is a privileged syscall. Use \ref envIsSyscallHinted to check if it is available.
  */
-Result svcMapDeviceAddressSpaceByForce(Handle handle, Handle proc_handle, u64 map_addr, u64 dev_size, u64 dev_addr, u32 perm);
+Result svcMapDeviceAddressSpaceByForce(Handle handle, Handle proc_handle, u64 map_addr, u64 dev_size, u64 dev_addr, u32 option);
 
 /**
  * @brief Maps an attached device address space to an userspace address.
@@ -1170,7 +1173,7 @@ Result svcMapDeviceAddressSpaceByForce(Handle handle, Handle proc_handle, u64 ma
  * @note Syscall number 0x5A.
  * @warning This is a privileged syscall. Use \ref envIsSyscallHinted to check if it is available.
  */
-Result svcMapDeviceAddressSpaceAligned(Handle handle, Handle proc_handle, u64 map_addr, u64 dev_size, u64 dev_addr, u32 perm);
+Result svcMapDeviceAddressSpaceAligned(Handle handle, Handle proc_handle, u64 map_addr, u64 dev_size, u64 dev_addr, u32 option);
 
 /**
  * @brief Maps an attached device address space to an userspace address. [1.0.0-12.1.0]
@@ -1561,10 +1564,28 @@ Result svcSetResourceLimitLimitValue(Handle reslimit, LimitableResource which, u
 /**
  * @brief Calls a secure monitor function (TrustZone, EL3).
  * @param regs Arguments to pass to the secure monitor.
- * @return Return value from the secure monitor.
  * @note Syscall number 0x7F.
  * @warning This is a privileged syscall. Use \ref envIsSyscallHinted to check if it is available.
  */
-u64 svcCallSecureMonitor(SecmonArgs* regs);
+void svcCallSecureMonitor(SecmonArgs* regs);
+
+///@}
+
+///@name Memory management
+///@{
+
+/**
+ * @brief Maps new insecure memory at the desired address. [15.0.0+]
+ * @return Result code.
+ * @note Syscall number 0x90.
+ */
+Result svcMapInsecureMemory(void *address, u64 size);
+
+/**
+ * @brief Undoes the effects of \ref svcMapInsecureMemory. [15.0.0+]
+ * @return Result code.
+ * @note Syscall number 0x91.
+ */
+Result svcUnmapInsecureMemory(void *address, u64 size);
 
 ///@}

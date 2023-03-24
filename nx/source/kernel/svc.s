@@ -424,12 +424,12 @@ SVC_BEGIN svcCreateEvent
 SVC_END
 
 SVC_BEGIN svcMapIoRegion
-	svc 0x48
+	svc 0x46
 	ret
 SVC_END
 
 SVC_BEGIN svcUnmapIoRegion
-	svc 0x49
+	svc 0x47
 	ret
 SVC_END
 
@@ -796,5 +796,15 @@ SVC_BEGIN svcCallSecureMonitor
 	stp x2, x3, [x8, #0x10]
 	stp x4, x5, [x8, #0x20]
 	stp x6, x7, [x8, #0x30]
+	ret
+SVC_END
+
+SVC_BEGIN svcMapInsecureMemory
+	svc 0x90
+	ret
+SVC_END
+
+SVC_BEGIN svcUnmapInsecureMemory
+	svc 0x91
 	ret
 SVC_END
